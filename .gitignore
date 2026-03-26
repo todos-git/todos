@@ -4,6 +4,6 @@ dist
 build
 .env
 .env.local
-uploads
+#uploads
 .DS_Store
 *.log
