@@ -124,4 +124,8 @@ app.use((err, req, res, next) => {
     });
 });
 
+console.log("CLOUDINARY NAME:", process.env.CLOUDINARY_CLOUD_NAME);
+console.log("CLOUDINARY KEY:", process.env.CLOUDINARY_API_KEY);
+console.log("CLOUDINARY SECRET EXISTS:", !!process.env.CLOUDINARY_API_SECRET);
+
 startServer();

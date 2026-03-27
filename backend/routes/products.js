@@ -15,11 +15,19 @@ const storage = new CloudinaryStorage({
     params: async (req, file) => ({
         folder: "todos/products",
         resource_type: "image",
-        allowed_formats: ["jpg", "jpeg", "png", "webp", "jfif"],
     }),
 });
 
-const upload = multer({ storage });
+const upload = multer({
+    storage,
+    fileFilter: (req, file, cb) => {
+        console.log("PRODUCT FILE:", {
+            originalname: file.originalname,
+            mimetype: file.mimetype,
+        });
+        cb(null, true);
+    },
+});
 
 const uploadProductsMiddleware = (req, res, next) => {
     upload.array("images", 5)(req, res, function (err) {

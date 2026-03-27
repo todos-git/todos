@@ -23,13 +23,22 @@ const storage = new CloudinaryStorage({
     params: async (req, file) => ({
         folder: "todos/banners",
         resource_type: "image",
-        allowed_formats: ["jpg", "jpeg", "png", "webp", "jfif"],
     }),
 });
 
-const upload = multer({ storage });
+const upload = multer({
+    storage,
+    fileFilter: (req, file, cb) => {
+        console.log("BANNER FILE:", {
+            originalname: file.originalname,
+            mimetype: file.mimetype,
+        });
+        cb(null, true);
+    },
+});
 
 const uploadBannerMiddleware = (req, res, next) => {
+    console.log("BANNER FILE MIME:", req.headers["content-type"]);
     upload.single("image")(req, res, function (err) {
         if (err) {
             console.error("BANNER UPLOAD ERROR:", err);
