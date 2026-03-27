@@ -45,7 +45,7 @@ router.post(
                 return res.status(403).json({ message: "Only sellers can create banner ads" });
             }
 
-            const { title, subtitle, targetType, targetProductId, durationDays } = req.body;
+            const { title, subtitle, targetType, targetProductId, durationDays, } = req.body;
 
             if (!title || !targetType || !durationDays) {
                 return res.status(400).json({
@@ -117,6 +117,8 @@ router.post(
                 qpayDeepLink: "",
                 paidAt: null,
             });
+
+
 
             res.status(201).json(bannerAd);
         } catch (error) {
