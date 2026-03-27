@@ -2,8 +2,9 @@
 
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
-import { Search, ShoppingCart } from "lucide-react";
+import { MapPin, Search, ShoppingCart } from "lucide-react";
 import { getCart } from "@/utils/cart";
+import { getPickupItems } from "@/utils/pickup";
 
 type CategoryItem = {
     label: string;
@@ -57,6 +58,7 @@ function NavbarContent() {
     const [mobileMenu, setMobileMenu] = useState(false);
     const [sellerMenuOpen, setSellerMenuOpen] = useState(false);
     const [cartCount, setCartCount] = useState(0);
+    const [pickupCount, setPickupCount] = useState(0);
     const [showFilterRow, setShowFilterRow] = useState(true);
     const [sellerOrderCount, setSellerOrderCount] = useState(0);
     const [buyerOrderCount, setBuyerOrderCount] = useState(0);
@@ -90,21 +92,31 @@ function NavbarContent() {
     }, [pathname]);
 
     useEffect(() => {
-        const updateCart = () => {
-            const items = getCart();
+        const updateCounts = () => {
+            const cartItems = getCart();
+            const pickupItems = getPickupItems();
+
             setCartCount(
-                Array.isArray(items)
-                    ? items.reduce((total, item) => total + item.quantity, 0)
+                Array.isArray(cartItems)
+                    ? cartItems.reduce((total, item) => total + item.quantity, 0)
+                    : 0
+            );
+
+            setPickupCount(
+                Array.isArray(pickupItems)
+                    ? pickupItems.reduce((total, item) => total + item.quantity, 0)
                     : 0
             );
         };
 
-        const frame = requestAnimationFrame(updateCart);
-        window.addEventListener("cartUpdated", updateCart);
+        const frame = requestAnimationFrame(updateCounts);
+        window.addEventListener("cartUpdated", updateCounts);
+        window.addEventListener("pickupUpdated", updateCounts);
 
         return () => {
             cancelAnimationFrame(frame);
-            window.removeEventListener("cartUpdated", updateCart);
+            window.removeEventListener("cartUpdated", updateCounts);
+            window.removeEventListener("pickupUpdated", updateCounts);
         };
     }, [pathname]);
 
@@ -360,6 +372,20 @@ function NavbarContent() {
 
                                 {showCart && (
                                     <button
+                                        onClick={() => router.push("/pickup")}
+                                        className="relative rounded-2xl border border-slate-200 bg-white p-3 text-slate-800 transition hover:bg-slate-50"
+                                    >
+                                        <MapPin size={23} />
+                                        {pickupCount > 0 && (
+                                            <span className="absolute -right-2 -top-2 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-violet-600 px-1 text-[11px] font-bold text-white">
+                                                {pickupCount}
+                                            </span>
+                                        )}
+                                    </button>
+                                )}
+
+                                {showCart && (
+                                    <button
                                         onClick={() => router.push("/cart")}
                                         className="relative rounded-2xl border border-slate-200 bg-white p-3 text-slate-800 transition hover:bg-slate-50"
                                     >
@@ -424,6 +450,20 @@ function NavbarContent() {
 
                         {!isAuthPage && (
                             <div className="flex items-center gap-2 md:hidden">
+
+                                {showCart && (
+                                    <button
+                                        onClick={() => router.push("/pickup")}
+                                        className="relative rounded-2xl border border-slate-200 bg-white p-2.5 text-slate-800 transition hover:bg-slate-50"
+                                    >
+                                        <MapPin size={21} />
+                                        {pickupCount > 0 && (
+                                            <span className="absolute -right-2 -top-2 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-violet-600 px-1 text-[10px] font-bold text-white">
+                                                {pickupCount}
+                                            </span>
+                                        )}
+                                    </button>
+                                )}
                                 {showCart && (
                                     <button
                                         onClick={() => router.push("/cart")}

@@ -47,6 +47,14 @@ export default function EditProduct() {
     const [isLoading, setIsLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
+    const getImageSrc = (src?: string) => {
+        if (!src) return "/no-image.png";
+
+        return src.startsWith("http")
+            ? src
+            : `${process.env.NEXT_PUBLIC_API_URL}${src.startsWith("/") ? src : `/${src}`}`;
+    };
+
     useEffect(() => {
         const token = localStorage.getItem("token");
 
@@ -463,7 +471,7 @@ export default function EditProduct() {
                                                     className="relative overflow-hidden rounded-2xl border border-gray-200 bg-gray-100"
                                                 >
                                                     <Image
-                                                        src={`${process.env.NEXT_PUBLIC_API_URL}${img}`}
+                                                        src={getImageSrc(img)}
                                                         alt={`Current product ${index + 1}`}
                                                         width={300}
                                                         height={200}

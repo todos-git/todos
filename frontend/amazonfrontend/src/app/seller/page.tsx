@@ -52,6 +52,14 @@ export default function SellerDashboardPage() {
     });
     const [loading, setLoading] = useState(true);
 
+    const getImageSrc = (src?: string) => {
+        if (!src) return "/no-image.png";
+
+        return src.startsWith("http")
+            ? src
+            : `${process.env.NEXT_PUBLIC_API_URL}${src.startsWith("/") ? src : `/${src}`}`;
+    };
+
     useEffect(() => {
         const fetchDashboard = async () => {
             try {
@@ -428,11 +436,7 @@ export default function SellerDashboardPage() {
                                 className="flex items-center gap-4 rounded-xl border border-slate-200 p-4"
                             >
                                 <Image
-                                    src={
-                                        product.images && product.images.length > 0
-                                            ? `${process.env.NEXT_PUBLIC_API_URL}${product.images[0]}`
-                                            : "/no-image.png"
-                                    }
+                                    src={getImageSrc(product.images?.[0])}
                                     alt={product.name}
                                     width={80}
                                     height={80}

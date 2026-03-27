@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import { addToCart } from "@/utils/cart";
+import { addToPickup } from "@/utils/pickup";
 import { formatPrice } from "@/utils/format";
 
 type Seller = {
@@ -108,6 +109,24 @@ export default function StorePage() {
 
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [role, setRole] = useState<string | null>(null);
+
+    const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") || "";
+
+    const getImageSrc = (src?: string) => {
+        if (!src) return "/no-image.png";
+
+        if (
+            src.startsWith("http://") ||
+            src.startsWith("https://") ||
+            src.startsWith("blob:") ||
+            src.startsWith("data:")
+        ) {
+            return src;
+        }
+
+        const normalizedSrc = src.startsWith("/") ? src : `/${src}`;
+        return apiBaseUrl ? `${apiBaseUrl}${normalizedSrc}` : normalizedSrc;
+    };
 
     useEffect(() => {
         if (typeof window !== "undefined") {
@@ -254,6 +273,36 @@ export default function StorePage() {
 
         window.dispatchEvent(new Event("cartUpdated"));
         alert("Сагсанд нэмэгдлээ");
+    };
+
+    const handleAddToPickup = (product: Product) => {
+        if (!seller) return;
+
+        if (!isLoggedIn) {
+            router.push(`/login?redirect=/store/${sellerId}`);
+            return;
+        }
+
+        if (role !== "user") {
+            alert("Зөвхөн худалдан авагч хэрэглэгч pickup ашиглах боломжтой");
+            return;
+        }
+
+        addToPickup({
+            _id: product._id,
+            name: product.name,
+            price: product.price,
+            images: product.images,
+            stock: product.stock,
+            storeName: seller.storeName || "Seller Store",
+            sellerId: seller._id,
+            pickupAvailable: product.pickupAvailable,
+            pickupAddress: product.pickupAddress,
+            pickupMapLink: product.pickupMapLink,
+        });
+
+        window.dispatchEvent(new Event("pickupUpdated"));
+        alert("Pickup жагсаалтанд нэмэгдлээ");
     };
 
     if (loading) {
@@ -495,10 +544,16 @@ export default function StorePage() {
                     ) : (
                         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
                             {filteredProducts.map((product) => {
-                                const imageUrl =
-                                    product.images && product.images.length > 0
-                                        ? `${process.env.NEXT_PUBLIC_API_URL}${product.images[0]}`
-                                        : "/no-image.png";
+                                const imageUrl = getImageSrc(product.images?.[0]);
+
+                                <Image
+                                    src={imageUrl}
+                                    alt={product.name}
+                                    width={500}
+                                    height={400}
+                                    unoptimized
+                                    className="h-full w-full object-cover"
+                                />
 
                                 const isOutOfStock = product.stock <= 0;
 
@@ -509,15 +564,6 @@ export default function StorePage() {
                                     >
                                         <Link href={`/products/${product._id}`}>
                                             <div className="relative flex h-64 items-center justify-center overflow-hidden bg-slate-50">
-                                                <Image
-                                                    src={imageUrl}
-                                                    alt={product.name}
-                                                    width={500}
-                                                    height={400}
-                                                    unoptimized
-                                                    className="h-full w-full object-cover"
-                                                />
-
                                                 {product.category && product.category !== "All" && (
                                                     <span
                                                         className={`absolute left-3 top-3 rounded-full border bg-white/90 px-3 py-1 text-xs font-semibold shadow-sm backdrop-blur ${theme.badgeClass}`}
@@ -567,11 +613,19 @@ export default function StorePage() {
                                                     {isBuyer ? (
                                                         <button
                                                             type="button"
-                                                            onClick={() => handleAddToCart(product)}
+                                                            onClick={() =>
+                                                                product.pickupAvailable && !product.deliveryAvailable
+                                                                    ? handleAddToPickup(product)
+                                                                    : handleAddToCart(product)
+                                                            }
                                                             disabled={isOutOfStock}
                                                             className="w-full rounded-2xl bg-slate-900 py-3 font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300"
                                                         >
-                                                            {isOutOfStock ? "Бараа дууссан" : "Сагслах"}
+                                                            {isOutOfStock
+                                                                ? "Бараа дууссан"
+                                                                : product.pickupAvailable && !product.deliveryAvailable
+                                                                    ? "📍 Очиж авах"
+                                                                    : "Сагслах"}
                                                         </button>
                                                     ) : (
                                                         <button
@@ -581,7 +635,9 @@ export default function StorePage() {
                                                             }
                                                             className="w-full rounded-2xl border border-slate-300 bg-white py-3 font-semibold text-slate-800 transition hover:bg-slate-50"
                                                         >
-                                                            Нэвтэрч сагслах
+                                                            {product.pickupAvailable && !product.deliveryAvailable
+                                                                ? "Нэвтэрч pickup хийх"
+                                                                : "Нэвтэрч сагслах"}
                                                         </button>
                                                     )}
                                                 </div>

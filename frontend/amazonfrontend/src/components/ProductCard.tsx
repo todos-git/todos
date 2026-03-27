@@ -59,6 +59,14 @@ function getSellerBadge(packageType?: string) {
     }
 }
 
+function getImageSrc(src?: string) {
+    if (!src) return "/no-image.png";
+
+    return src.startsWith("http")
+        ? src
+        : `${process.env.NEXT_PUBLIC_API_URL}${src.startsWith("/") ? src : `/${src}`}`;
+}
+
 export default function ProductCard({
     product,
     showSeller = false,
@@ -68,19 +76,13 @@ export default function ProductCard({
     showSeller?: boolean;
     featured?: boolean;
 }) {
-    const imageUrl =
-        product.images && product.images.length > 0
-            ? `${process.env.NEXT_PUBLIC_API_URL}${product.images[0]}`
-            : "/no-image.png";
+    const imageUrl = getImageSrc(product.images?.[0]);
 
     const badge = getSellerBadge(product.sellerId?.packageType);
 
     const isTopRated =
         (product.sellerReviewCount || 0) >= 3 &&
         (product.sellerRating || 0) >= 4.5;
-
-
-
 
     return (
         <Link
@@ -105,9 +107,7 @@ export default function ProductCard({
                         {product.sellerId?.storeName || "Дэлгүүр"}
                     </p>
 
-                    <span
-                        className={`rounded-full px-2 py-1 text-xs ${badge.className}`}
-                    >
+                    <span className={`rounded-full px-2 py-1 text-xs ${badge.className}`}>
                         {badge.label}
                     </span>
 
@@ -116,8 +116,9 @@ export default function ProductCard({
                             Баталгаажсан
                         </span>
                     )}
+
                     {product.isTopSeller && (
-                        <span className="text-xs px-2 py-1 rounded-full bg-red-100 text-red-700">
+                        <span className="rounded-full bg-red-100 px-2 py-1 text-xs text-red-700">
                             🔥 Top Seller
                         </span>
                     )}
@@ -131,9 +132,6 @@ export default function ProductCard({
             )}
 
             <h3 className="line-clamp-1 text-lg font-semibold">{product.name}</h3>
-
-
-
 
             <div className="mt-2 flex flex-wrap gap-2">
                 {product.deliveryAvailable && (
@@ -155,15 +153,7 @@ export default function ProductCard({
                 )}
             </div>
 
-
-
-
-
             <p className="mt-2 text-lg font-bold">{formatPrice(product.price)}</p>
-
-
-
-
         </Link>
     );
 }

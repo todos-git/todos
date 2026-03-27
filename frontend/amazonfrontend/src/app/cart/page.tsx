@@ -26,6 +26,24 @@ type CartItem = {
 };
 
 export default function CartPage() {
+
+    const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") || "";
+
+    const getImageSrc = (src?: string) => {
+        if (!src) return "/no-image.png";
+
+        if (
+            src.startsWith("http://") ||
+            src.startsWith("https://") ||
+            src.startsWith("blob:") ||
+            src.startsWith("data:")
+        ) {
+            return src;
+        }
+
+        const normalizedSrc = src.startsWith("/") ? src : `/${src}`;
+        return apiBaseUrl ? `${apiBaseUrl}${normalizedSrc}` : normalizedSrc;
+    };
     const [cartItems, setCartItems] = useState<CartItem[] | null>(null);
 
     useEffect(() => {
@@ -145,10 +163,9 @@ export default function CartPage() {
                                             <>
                                                 {/* eslint-disable-next-line @next/next/no-img-element */}
                                                 <img
-                                                    src={
-                                                        item.images[0].startsWith("http")
-                                                            ? item.images[0]
-                                                            : `${process.env.NEXT_PUBLIC_API_URL}${item.images[0].startsWith("/") ? item.images[0] : `/${item.images[0]}`}`
+                                                    src={getImageSrc(item.images?.[0])
+                                                        ? item.images[0]
+                                                        : `${process.env.NEXT_PUBLIC_API_URL}${item.images[0].startsWith("/") ? item.images[0] : `/${item.images[0]}`}`
                                                     }
                                                     alt={item.name}
                                                     className="w-full h-full object-cover"

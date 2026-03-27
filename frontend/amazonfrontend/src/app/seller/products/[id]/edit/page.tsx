@@ -36,6 +36,24 @@ export default function EditProduct() {
     const [isLoading, setIsLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
+    const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") || "";
+
+    const getImageSrc = (src?: string) => {
+        if (!src) return "/no-image.png";
+
+        if (
+            src.startsWith("http://") ||
+            src.startsWith("https://") ||
+            src.startsWith("blob:") ||
+            src.startsWith("data:")
+        ) {
+            return src;
+        }
+
+        const normalizedSrc = src.startsWith("/") ? src : `/${src}`;
+        return apiBaseUrl ? `${apiBaseUrl}${normalizedSrc}` : normalizedSrc;
+    };
+
     useEffect(() => {
         const token = localStorage.getItem("token");
 
@@ -369,7 +387,7 @@ export default function EditProduct() {
                                                     className="relative overflow-hidden rounded-2xl border border-slate-200 bg-slate-100"
                                                 >
                                                     <Image
-                                                        src={`${process.env.NEXT_PUBLIC_API_URL}${img}`}
+                                                        src={getImageSrc(img)}
                                                         alt={`Current product ${index + 1}`}
                                                         width={300}
                                                         height={200}

@@ -25,6 +25,14 @@ type CartItem = {
 export default function CheckoutPage() {
     const [cartItems, setCartItems] = useState<CartItem[] | null>(null);
 
+    const getImageSrc = (src?: string) => {
+        if (!src) return "/no-image.png";
+
+        return src.startsWith("http")
+            ? src
+            : `${process.env.NEXT_PUBLIC_API_URL}${src.startsWith("/") ? src : `/${src}`}`;
+    };
+
     const handlePlaceOrder = async () => {
         const token = localStorage.getItem("token");
 
@@ -99,9 +107,9 @@ export default function CheckoutPage() {
 
     if (cartItems === null) {
         return (
-            <div className="min-h-screen bg-[#f6f6f6] px-4 md:px-6 py-10">
-                <div className="max-w-6xl mx-auto">
-                    <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8">
+            <div className="min-h-screen bg-[#f6f6f6] px-4 py-10 md:px-6">
+                <div className="mx-auto max-w-6xl">
+                    <div className="rounded-3xl border border-gray-100 bg-white p-8 shadow-sm">
                         <p className="text-gray-500">Захиалгын мэдээлэл ачааллаж байна...</p>
                     </div>
                 </div>
@@ -110,38 +118,36 @@ export default function CheckoutPage() {
     }
 
     return (
-        <div className="min-h-screen bg-[#f6f6f6] px-4 md:px-6 py-10">
-            <div className="max-w-6xl mx-auto">
+        <div className="min-h-screen bg-[#f6f6f6] px-4 py-10 md:px-6">
+            <div className="mx-auto max-w-6xl">
                 <div className="mb-8">
                     <p className="text-sm uppercase tracking-[0.25em] text-gray-400">
                         Эцсийн баталгаажуулалт
                     </p>
-                    <h1 className="text-3xl md:text-4xl font-bold mt-2">
-                        Захиалгаа шалгах
-                    </h1>
-                    <p className="text-gray-500 mt-2">
+                    <h1 className="mt-2 text-3xl font-bold md:text-4xl">Захиалгаа шалгах</h1>
+                    <p className="mt-2 text-gray-500">
                         Захиалга илгээхээсээ өмнө бараа, тоо хэмжээ, нийт дүнгээ шалгана уу.
                     </p>
                 </div>
 
                 {cartItems.length === 0 ? (
-                    <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-10 text-center">
-                        <h2 className="text-2xl font-bold mb-3">Таны сагс хоосон байна</h2>
-                        <p className="text-gray-500 mb-6">
+                    <div className="rounded-3xl border border-gray-100 bg-white p-10 text-center shadow-sm">
+                        <h2 className="mb-3 text-2xl font-bold">Таны сагс хоосон байна</h2>
+                        <p className="mb-6 text-gray-500">
                             Үргэлжлүүлэхийн тулд сагсандаа бараа нэмнэ үү.
                         </p>
                         <Link
                             href="/cart"
-                            className="inline-block px-6 py-3 rounded-xl bg-black text-white hover:opacity-90"
+                            className="inline-block rounded-xl bg-black px-6 py-3 text-white hover:opacity-90"
                         >
                             Сагс руу буцах
                         </Link>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-                        <div className="xl:col-span-2 space-y-6">
-                            <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 md:p-8">
-                                <div className="flex items-center justify-between mb-6">
+                    <div className="grid grid-cols-1 gap-8 xl:grid-cols-3">
+                        <div className="space-y-6 xl:col-span-2">
+                            <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm md:p-8">
+                                <div className="mb-6 flex items-center justify-between">
                                     <h2 className="text-2xl font-bold">Захиалсан бараанууд</h2>
                                     <span className="text-sm text-gray-500">
                                         {cartItems.reduce((sum, item) => sum + item.quantity, 0)} ширхэг
@@ -151,32 +157,28 @@ export default function CheckoutPage() {
                                 <div className="space-y-6">
                                     {cartItems.map((item, index) => (
                                         <div key={item._id}>
-                                            <div className="flex flex-col md:flex-row gap-5">
-                                                <div className="w-full md:w-36 h-36 rounded-2xl overflow-hidden bg-gray-100 shrink-0 border">
+                                            <div className="flex flex-col gap-5 md:flex-row">
+                                                <div className="h-36 w-full shrink-0 overflow-hidden rounded-2xl border bg-gray-100 md:w-36">
                                                     {item.images?.[0] ? (
                                                         <>
                                                             {/* eslint-disable-next-line @next/next/no-img-element */}
                                                             <img
-                                                                src={
-                                                                    item.images[0].startsWith("http")
-                                                                        ? item.images[0]
-                                                                        : `${process.env.NEXT_PUBLIC_API_URL}${item.images[0].startsWith("/") ? item.images[0] : `/${item.images[0]}`}`
-                                                                }
+                                                                src={getImageSrc(item.images?.[0])}
                                                                 alt={item.name}
-                                                                className="w-full h-full object-cover"
+                                                                className="h-full w-full object-cover"
                                                             />
                                                         </>
                                                     ) : (
-                                                        <div className="w-full h-full flex items-center justify-center text-sm text-gray-400">
+                                                        <div className="flex h-full w-full items-center justify-center text-sm text-gray-400">
                                                             No Image
                                                         </div>
                                                     )}
                                                 </div>
 
                                                 <div className="flex-1">
-                                                    <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+                                                    <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                                                         <div>
-                                                            <p className="text-xs uppercase tracking-[0.2em] text-gray-400 mb-2">
+                                                            <p className="mb-2 text-xs uppercase tracking-[0.2em] text-gray-400">
                                                                 Бүтээгдэхүүн
                                                             </p>
 
@@ -189,34 +191,34 @@ export default function CheckoutPage() {
 
                                                             <p className="mt-3 text-sm text-gray-500">
                                                                 Дэлгүүр:{" "}
-                                                                <span className="text-gray-700 font-medium">
+                                                                <span className="font-medium text-gray-700">
                                                                     {item.storeName || "Тодорхойгүй дэлгүүр"}
                                                                 </span>
                                                             </p>
 
                                                             <p className="mt-1 text-sm text-gray-500">
                                                                 Тоо ширхэг:{" "}
-                                                                <span className="text-gray-700 font-medium">
+                                                                <span className="font-medium text-gray-700">
                                                                     {item.quantity}
                                                                 </span>
                                                             </p>
 
                                                             <p className="mt-1 text-sm text-gray-500">
                                                                 Нэгж үнэ:{" "}
-                                                                <span className="text-gray-700 font-medium">
+                                                                <span className="font-medium text-gray-700">
                                                                     {formatPrice(item.price)}
                                                                 </span>
                                                             </p>
 
                                                             <div className="mt-3 flex flex-wrap gap-2">
                                                                 {item.deliveryAvailable && (
-                                                                    <span className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded-full">
+                                                                    <span className="rounded-full bg-green-100 px-2 py-1 text-xs text-green-700">
                                                                         🚚 Хүргэлт
                                                                     </span>
                                                                 )}
 
                                                                 {item.pickupAvailable && (
-                                                                    <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded-full">
+                                                                    <span className="rounded-full bg-blue-100 px-2 py-1 text-xs text-blue-700">
                                                                         📍 Pickup
                                                                     </span>
                                                                 )}
@@ -225,7 +227,7 @@ export default function CheckoutPage() {
                                                             {item.pickupAvailable && item.pickupAddress && (
                                                                 <p className="mt-2 text-sm text-gray-500">
                                                                     Pickup хаяг:{" "}
-                                                                    <span className="text-gray-700 font-medium">
+                                                                    <span className="font-medium text-gray-700">
                                                                         {item.pickupAddress}
                                                                     </span>
                                                                 </p>
@@ -244,7 +246,7 @@ export default function CheckoutPage() {
                                                         </div>
 
                                                         <div className="md:text-right">
-                                                            <p className="text-xs uppercase tracking-[0.2em] text-gray-400 mb-2">
+                                                            <p className="mb-2 text-xs uppercase tracking-[0.2em] text-gray-400">
                                                                 Барааны дүн
                                                             </p>
                                                             <p className="text-2xl font-bold">
@@ -256,15 +258,15 @@ export default function CheckoutPage() {
                                             </div>
 
                                             {index !== cartItems.length - 1 && (
-                                                <div className="border-t border-dashed mt-6 pt-0" />
+                                                <div className="mt-6 border-t border-dashed pt-0" />
                                             )}
                                         </div>
                                     ))}
                                 </div>
                             </div>
 
-                            <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 md:p-8">
-                                <h2 className="text-xl font-bold mb-4">Тайлбар</h2>
+                            <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm md:p-8">
+                                <h2 className="mb-4 text-xl font-bold">Тайлбар</h2>
 
                                 <div className="space-y-3 text-sm text-gray-600">
                                     <p>• Барааны нэр, дэлгүүр, тоо хэмжээ, хүргэлт/pickup мэдээллээ шалгана уу.</p>
@@ -275,37 +277,37 @@ export default function CheckoutPage() {
                         </div>
 
                         <div>
-                            <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 md:p-8 sticky top-24">
-                                <div className="border-b border-dashed pb-4 mb-5">
+                            <div className="sticky top-24 rounded-3xl border border-gray-100 bg-white p-6 shadow-sm md:p-8">
+                                <div className="mb-5 border-b border-dashed pb-4">
                                     <p className="text-xs uppercase tracking-[0.3em] text-gray-400">
                                         Төлбөрийн хураангуй
                                     </p>
-                                    <h2 className="text-2xl font-bold mt-2">Захиалгын дүн</h2>
+                                    <h2 className="mt-2 text-2xl font-bold">Захиалгын дүн</h2>
                                 </div>
 
                                 <div className="space-y-4 text-sm">
-                                    <div className="flex justify-between items-center">
+                                    <div className="flex items-center justify-between">
                                         <span className="text-gray-500">Барааны тоо</span>
                                         <span className="font-medium text-gray-800">
                                             {cartItems.reduce((sum, item) => sum + item.quantity, 0)}
                                         </span>
                                     </div>
 
-                                    <div className="flex justify-between items-center">
+                                    <div className="flex items-center justify-between">
                                         <span className="text-gray-500">Дэд дүн</span>
                                         <span className="font-medium text-gray-800">
                                             {formatPrice(subtotal)}
                                         </span>
                                     </div>
 
-                                    <div className="flex justify-between items-center">
+                                    <div className="flex items-center justify-between">
                                         <span className="text-gray-500">Хүргэлт</span>
                                         <span className="font-medium text-gray-800">
                                             {formatPrice(shipping)}
                                         </span>
                                     </div>
 
-                                    <div className="flex justify-between items-center">
+                                    <div className="flex items-center justify-between">
                                         <span className="text-gray-500">Татвар</span>
                                         <span className="font-medium text-gray-800">
                                             {formatPrice(tax)}
@@ -313,30 +315,28 @@ export default function CheckoutPage() {
                                     </div>
                                 </div>
 
-                                <div className="border-t border-b border-dashed py-5 my-5">
-                                    <div className="flex justify-between items-center">
+                                <div className="my-5 border-y border-dashed py-5">
+                                    <div className="flex items-center justify-between">
                                         <span className="text-lg font-semibold">Нийт төлбөр</span>
-                                        <span className="text-2xl font-bold">
-                                            {formatPrice(total)}
-                                        </span>
+                                        <span className="text-2xl font-bold">{formatPrice(total)}</span>
                                     </div>
                                 </div>
 
-                                <div className="bg-gray-50 rounded-2xl p-4 mb-5 text-sm text-gray-600">
+                                <div className="mb-5 rounded-2xl bg-gray-50 p-4 text-sm text-gray-600">
                                     Захиалга баталгаажуулахдаа бараа, тоо ширхэг, хүргэлтийн сонголт,
                                     нийт төлбөр зөв эсэхийг шалгасан гэж үзнэ.
                                 </div>
 
                                 <button
                                     onClick={handlePlaceOrder}
-                                    className="w-full bg-black text-white py-4 rounded-2xl font-semibold text-lg hover:opacity-90 transition"
+                                    className="w-full rounded-2xl bg-black py-4 text-lg font-semibold text-white transition hover:opacity-90"
                                 >
                                     Захиалга баталгаажуулах
                                 </button>
 
                                 <Link
                                     href="/cart"
-                                    className="block text-center mt-4 text-sm text-gray-500 hover:text-black"
+                                    className="mt-4 block text-center text-sm text-gray-500 hover:text-black"
                                 >
                                     Сагс руу буцах
                                 </Link>
@@ -348,13 +348,3 @@ export default function CheckoutPage() {
         </div>
     );
 }
-
-
-
-
-
-
-
-
-
-

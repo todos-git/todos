@@ -26,6 +26,24 @@ export default function SellerProducts() {
     const [user, setUser] = useState<SellerMe | null>(null);
     const [loading, setLoading] = useState(true);
 
+    const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") || "";
+
+    const getImageSrc = (src?: string) => {
+        if (!src) return "/no-image.png";
+
+        if (
+            src.startsWith("http://") ||
+            src.startsWith("https://") ||
+            src.startsWith("blob:") ||
+            src.startsWith("data:")
+        ) {
+            return src;
+        }
+
+        const normalizedSrc = src.startsWith("/") ? src : `/${src}`;
+        return apiBaseUrl ? `${apiBaseUrl}${normalizedSrc}` : normalizedSrc;
+    };
+
     useEffect(() => {
         const fetchData = async () => {
             try {
@@ -86,6 +104,7 @@ export default function SellerProducts() {
             alert("Бүтээгдэхүүн устгахад алдаа гарлаа.");
         }
     };
+
     const handleToggleActive = async (id: string) => {
         try {
             const token = localStorage.getItem("token");
@@ -259,10 +278,7 @@ export default function SellerProducts() {
             ) : (
                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
                     {products.map((product) => {
-                        const imageUrl =
-                            product.images && product.images.length > 0
-                                ? `${process.env.NEXT_PUBLIC_API_URL}${product.images[0]}`
-                                : "/no-image.png";
+                        const imageUrl = getImageSrc(product.images?.[0]);
 
                         return (
                             <div
@@ -286,7 +302,10 @@ export default function SellerProducts() {
                                 <p className="mt-1 text-lg font-bold text-slate-900">
                                     {formatPrice(product.price)}
                                 </p>
-                                <p className={`text-sm font-medium ${product.isActive ? "text-slate-500" : "text-red-500"}`}>
+                                <p
+                                    className={`text-sm font-medium ${product.isActive ? "text-slate-500" : "text-red-500"
+                                        }`}
+                                >
                                     {product.isActive === false
                                         ? "🚫 Идэвхгүй (үлдэгдэл дууссан)"
                                         : `📦 Үлдэгдэл: ${product.stock}`}
@@ -302,11 +321,13 @@ export default function SellerProducts() {
                                     <button
                                         onClick={() => handleToggleActive(product._id)}
                                         className={`text-sm font-medium ${product.isActive === false
-                                            ? "text-green-600 hover:underline"
-                                            : "text-orange-600 hover:underline"
+                                                ? "text-green-600 hover:underline"
+                                                : "text-orange-600 hover:underline"
                                             }`}
                                     >
-                                        {product.isActive === false ? "Дахин идэвхжүүлэх" : "Үлдэгдэл дууссан болгох"}
+                                        {product.isActive === false
+                                            ? "Дахин идэвхжүүлэх"
+                                            : "Үлдэгдэл дууссан болгох"}
                                     </button>
 
                                     <button

@@ -25,6 +25,14 @@ export default function HomeHeroBanner() {
 
     const activeBanner = banners[current];
 
+    const getImageSrc = (src?: string) => {
+        if (!src) return "/no-image.png";
+
+        return src.startsWith("http")
+            ? src
+            : `${process.env.NEXT_PUBLIC_API_URL}${src.startsWith("/") ? src : `/${src}`}`;
+    };
+
     useEffect(() => {
         const fetchBanners = async () => {
             try {
@@ -115,7 +123,7 @@ export default function HomeHeroBanner() {
                     <div className="relative overflow-hidden rounded-[32px] border border-slate-200 bg-slate-100 shadow-[0_20px_70px_rgba(15,23,42,0.08)]">
                         <div className="absolute inset-0">
                             <Image
-                                src={`${process.env.NEXT_PUBLIC_API_URL}${activeBanner.image}`}
+                                src={getImageSrc(activeBanner.image)}
                                 alt={activeBanner.title}
                                 fill
                                 priority

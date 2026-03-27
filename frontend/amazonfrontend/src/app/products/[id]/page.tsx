@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { addToCart } from "@/utils/cart";
+import { addToPickup } from "@/utils/pickup";
 
 type Seller = {
     _id?: string;
@@ -163,6 +164,46 @@ export default function ProductDetailPage() {
 
         window.dispatchEvent(new Event("storage"));
         alert("Сагсанд нэмэгдлээ");
+    };
+
+    const handleAddToPickup = () => {
+        if (!product) return;
+
+        if (!isLoggedIn) {
+            router.push(`/login?redirect=/products/${product._id}`);
+            return;
+        }
+
+        if (userRole !== "user") {
+            alert("Зөвхөн худалдан авагч хэрэглэгч pickup ашиглах боломжтой");
+            return;
+        }
+
+        if ((product.stock || 0) <= 0) {
+            alert("Энэ барааны үлдэгдэл дууссан байна");
+            return;
+        }
+
+        if (!product.pickupAvailable) {
+            alert("Энэ бараанд pickup боломжгүй байна");
+            return;
+        }
+
+        addToPickup({
+            _id: product._id,
+            name: product.name,
+            price: product.price,
+            images: product.images,
+            stock: product.stock,
+            storeName: seller?.storeName || "Seller Store",
+            sellerId: seller?._id || "",
+            pickupAvailable: product.pickupAvailable,
+            pickupAddress: product.pickupAddress,
+            pickupMapLink: product.pickupMapLink,
+        });
+
+        window.dispatchEvent(new Event("pickupUpdated"));
+        alert("Pickup жагсаалтанд нэмэгдлээ");
     };
 
     if (loading) {
@@ -427,18 +468,35 @@ export default function ProductDetailPage() {
 
                             <div className="mt-6 space-y-3">
                                 {isBuyerLoggedIn ? (
-                                    <button
-                                        type="button"
-                                        onClick={handleAddToCart}
-                                        disabled={isOutOfStock || !product.deliveryAvailable}
-                                        className="w-full rounded-2xl bg-slate-900 px-5 py-3.5 text-base font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
-                                    >
-                                        {isOutOfStock
-                                            ? "Бараа дууссан"
-                                            : !product.deliveryAvailable
-                                                ? "Хүргэлтгүй"
-                                                : "Сагслах"}
-                                    </button>
+                                    <>
+                                        {/* CART BUTTON */}
+                                        <button
+                                            type="button"
+                                            onClick={handleAddToCart}
+                                            disabled={isOutOfStock || !product.deliveryAvailable}
+                                            className="w-full rounded-2xl bg-slate-900 px-5 py-3.5 text-base font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+                                        >
+                                            {isOutOfStock
+                                                ? "Бараа дууссан"
+                                                : !product.deliveryAvailable
+                                                    ? "Хүргэлтгүй"
+                                                    : "Сагслах"}
+                                        </button>
+
+                                        {/* PICKUP BUTTON */}
+                                        {product.pickupAvailable && (
+                                            <button
+                                                type="button"
+                                                onClick={handleAddToPickup}
+                                                disabled={isOutOfStock}
+                                                className="w-full rounded-2xl border border-violet-300 bg-violet-50 px-5 py-3.5 text-base font-semibold text-violet-700 transition hover:bg-violet-100 disabled:cursor-not-allowed disabled:opacity-50"
+                                            >
+                                                {isOutOfStock
+                                                    ? "Pickup боломжгүй"
+                                                    : "📍 Pickup жагсаалтанд нэмэх"}
+                                            </button>
+                                        )}
+                                    </>
                                 ) : !isLoggedIn ? (
                                     <button
                                         type="button"
@@ -447,15 +505,15 @@ export default function ProductDetailPage() {
                                         }
                                         className="w-full rounded-2xl bg-slate-900 px-5 py-3.5 text-base font-semibold text-white transition hover:bg-slate-800"
                                     >
-                                        Нэвтэрч сагслах
+                                        {product.pickupAvailable && !product.deliveryAvailable
+                                            ? "Нэвтэрч pickup хийх"
+                                            : "Нэвтэрч сагслах"}
                                     </button>
                                 ) : (
                                     <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">
                                         Худалдагч хэрэглэгч сагслах боломжгүй
                                     </div>
                                 )}
-
-
                             </div>
 
 
