@@ -5,18 +5,38 @@ const User = require("../models/User");
 const Order = require("../models/Order");
 const authMiddleware = require("../middleware/authMiddleware");
 const multer = require("multer");
-const path = require("path");
+const cloudinary = require("../config/cloudinary");
+const { CloudinaryStorage } = require("multer-storage-cloudinary");
 const mongoose = require("mongoose");
 const { checkAndDowngradePackage } = require("../utils/checkAndDowngradePackage");
 
-const storage = multer.diskStorage({
-    destination: "uploads/",
-    filename: (req, file, cb) => {
-        cb(null, Date.now() + path.extname(file.originalname));
-    },
+const storage = new CloudinaryStorage({
+    cloudinary: cloudinary,
+    params: async (req, file) => ({
+        folder: "todos/products",
+        resource_type: "image",
+        allowed_formats: ["jpg", "jpeg", "png", "webp", "jfif"],
+    }),
 });
 
 const upload = multer({ storage });
+
+const uploadProductsMiddleware = (req, res, next) => {
+    upload.array("images", 5)(req, res, function (err) {
+        if (err) {
+            console.error("PRODUCT UPLOAD ERROR:", err);
+            console.error("PRODUCT UPLOAD ERROR STRING:", JSON.stringify(err, Object.getOwnPropertyNames(err)));
+
+            return res.status(500).json({
+                message: "Image upload failed",
+                error: err.message || String(err),
+                details: JSON.stringify(err, Object.getOwnPropertyNames(err)),
+            });
+        }
+
+        next();
+    });
+};
 
 function normalizeText(text) {
     return text
@@ -38,7 +58,7 @@ function normalizeText(text) {
 router.post(
     "/",
     authMiddleware,
-    upload.array("images", 5),
+    uploadProductsMiddleware,
     async (req, res) => {
         try {
             console.log("BODY:", req.body);
@@ -129,7 +149,7 @@ router.post(
                 pickupAvailable,
                 pickupAddress: "",
                 pickupMapLink: req.body.pickupMapLink?.trim() || "",
-                images: req.files.map((file) => `/uploads/${file.filename}`),
+                images: req.files.map((file) => file.path),
                 sellerId: req.user._id,
             });
 
@@ -431,7 +451,7 @@ router.put(
             }
 
             const newImages = req.files
-                ? req.files.map((file) => `/uploads/${file.filename}`)
+                ? req.files.map((file) => file.path)
                 : [];
 
             product.images = [...existingImages, ...newImages];

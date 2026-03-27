@@ -22,18 +22,22 @@ const app = express();
 // ==============================
 const allowedOrigins = [
     "http://localhost:3000",
+    "http://127.0.0.1:3000",
     "https://todos.mn",
     "https://www.todos.mn",
+    "https://todos.vercel.app",
     process.env.FRONTEND_URL,
 ].filter(Boolean);
 
 app.use(
     cors({
         origin: function (origin, callback) {
-            // Postman, mobile apps, server-to-server requests
             if (!origin) return callback(null, true);
 
-            if (allowedOrigins.includes(origin)) {
+            const isExactMatch = allowedOrigins.includes(origin);
+            const isVercelPreview = /^https:\/\/todos-.*\.vercel\.app$/.test(origin);
+
+            if (isExactMatch || isVercelPreview) {
                 return callback(null, true);
             }
 
@@ -105,5 +109,19 @@ async function startServer() {
         console.error("SERVER START ERROR:", error);
     }
 }
+
+
+app.use((err, req, res, next) => {
+    console.error("GLOBAL ERROR RAW:", err);
+    console.error(
+        "GLOBAL ERROR STRING:",
+        JSON.stringify(err, Object.getOwnPropertyNames(err))
+    );
+
+    res.status(500).json({
+        message: err.message || "Server error",
+        details: JSON.stringify(err, Object.getOwnPropertyNames(err)),
+    });
+});
 
 startServer();

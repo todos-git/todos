@@ -2,7 +2,8 @@ const express = require("express");
 const router = express.Router();
 const mongoose = require("mongoose");
 const multer = require("multer");
-const path = require("path");
+const cloudinary = require("../config/cloudinary");
+const { CloudinaryStorage } = require("multer-storage-cloudinary");
 const axios = require("axios");
 
 const BannerAd = require("../models/BannerAd");
@@ -17,14 +18,33 @@ const {
     BANNER_TERMS_TEXT,
 } = require("../utils/serviceTerms");
 
-const storage = multer.diskStorage({
-    destination: "uploads/",
-    filename: (req, file, cb) => {
-        cb(null, Date.now() + path.extname(file.originalname));
-    },
+const storage = new CloudinaryStorage({
+    cloudinary: cloudinary,
+    params: async (req, file) => ({
+        folder: "todos/banners",
+        resource_type: "image",
+        allowed_formats: ["jpg", "jpeg", "png", "webp", "jfif"],
+    }),
 });
 
 const upload = multer({ storage });
+
+const uploadBannerMiddleware = (req, res, next) => {
+    upload.single("image")(req, res, function (err) {
+        if (err) {
+            console.error("BANNER UPLOAD ERROR:", err);
+            console.error("BANNER UPLOAD ERROR STRING:", JSON.stringify(err, Object.getOwnPropertyNames(err)));
+
+            return res.status(500).json({
+                message: "Banner image upload failed",
+                error: err.message || String(err),
+                details: JSON.stringify(err, Object.getOwnPropertyNames(err)),
+            });
+        }
+
+        next();
+    });
+};
 
 // ==============================
 // CREATE BANNER AD
@@ -32,7 +52,7 @@ const upload = multer({ storage });
 router.post(
     "/",
     authMiddleware,
-    upload.single("image"),
+    uploadBannerMiddleware,
     async (req, res) => {
         try {
             const user = await User.findById(req.user._id);
@@ -98,7 +118,7 @@ router.post(
                 title: title.trim(),
                 subtitle: subtitle?.trim() || "",
                 image: req.file
-                    ? `/uploads/${req.file.filename}`
+                    ? req.file.path
                     : req.body.existingImage.trim(),
                 targetType,
                 targetProductId: finalTargetProductId,
@@ -456,8 +476,7 @@ router.delete("/:id", authMiddleware, async (req, res) => {
             return res.status(403).json({ message: "Not authorized" });
         }
 
-        // pending/paid/rejected/expired дээр delete OK
-        // active banner-г delete хийхгүй байлгамаар байвал энэ шалгалт үлдээнэ
+
         if (ad.status === "active") {
             return res.status(400).json({
                 message: "Идэвхтэй баннерыг устгах боломжгүй",
