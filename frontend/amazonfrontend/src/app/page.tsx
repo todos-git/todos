@@ -265,10 +265,8 @@ function HomePageContent() {
   return (
     <div className="min-h-screen bg-[#f7f2fb]">
       {!isFiltering && (
-        <section className="mx-auto max-w-[1700px] px-4 pt-5 md:px-6 md:pt-6">
-          <div className="overflow-hidden rounded-[36px] shadow-sm">
-            <HomeHeroBanner />
-          </div>
+        <section className="mx-auto max-w-[1700px] px-2 pt-2 md:px-4 md:pt-4">
+          <HomeHeroBanner />
         </section>
       )}
 

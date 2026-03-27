@@ -11,40 +11,19 @@ type BannerAd = {
     image: string;
     targetType: "store" | "product";
     targetLink: string;
+    theme?: "blue" | "pink" | "dark" | "gold" | "clean";
     storeNameSnapshot?: string;
     locationSnapshot?: string;
     packageTypeSnapshot?: "free" | "basic" | "pro" | "premium";
 };
 
-function getSellerBadge(packageType?: string) {
-    switch (packageType) {
-        case "premium":
-            return {
-                label: "Premium Seller",
-                className: "bg-yellow-100 text-yellow-700",
-            };
-        case "pro":
-            return {
-                label: "Pro Seller",
-                className: "bg-purple-100 text-purple-700",
-            };
-        case "basic":
-            return {
-                label: "Basic Seller",
-                className: "bg-blue-100 text-blue-700",
-            };
-        default:
-            return {
-                label: "Free Seller",
-                className: "bg-gray-100 text-gray-700",
-            };
-    }
-}
-
 export default function HomeHeroBanner() {
     const [banners, setBanners] = useState<BannerAd[]>([]);
     const [current, setCurrent] = useState(0);
     const [loading, setLoading] = useState(true);
+    const [showBannerPrompt, setShowBannerPrompt] = useState(false);
+
+    const activeBanner = banners[current];
 
     useEffect(() => {
         const fetchBanners = async () => {
@@ -78,8 +57,8 @@ export default function HomeHeroBanner() {
     if (loading) {
         return (
             <section className="relative w-full bg-transparent">
-                <div className="max-w-7xl mx-auto px-4 md:px-6 pt-4 md:pt-6">
-                    <div className="rounded-3xl h-[280px] md:h-[420px] bg-slate-100 animate-pulse shadow-xl" />
+                <div className="mx-auto max-w-7xl px-3 pt-3 sm:px-4 md:px-6 md:pt-5">
+                    <div className="h-[320px] rounded-[32px] bg-slate-100 animate-pulse md:h-[420px]" />
                 </div>
             </section>
         );
@@ -88,34 +67,35 @@ export default function HomeHeroBanner() {
     if (banners.length === 0) {
         return (
             <section className="relative w-full bg-transparent">
-                <div className="max-w-7xl mx-auto px-4 md:px-6 pt-4 md:pt-6">
-                    <div className="rounded-3xl overflow-hidden bg-gradient-to-r from-purple-300 via-pink-300 to-purple-400 shadow-xl">
-                        <div className="grid grid-cols-1 md:grid-cols-2 items-center min-h-[300px] md:min-h-[460px] gap-8 p-6 md:p-10">
-                            <div className="space-y-4">
-                                <p className="text-sm md:text-base font-medium text-gray-700">
-                                    Sponsored & Premium Seller Products
-                                </p>
+                <div className="mx-auto max-w-7xl px-3 pt-3 sm:px-4 md:px-6 md:pt-5">
+                    <div className="relative overflow-hidden rounded-[32px] border border-slate-200 bg-[linear-gradient(135deg,#f8fafc_0%,#ffffff_45%,#eef2f7_100%)] shadow-[0_20px_70px_rgba(15,23,42,0.08)]">
+                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.08),transparent_28%),radial-gradient(circle_at_bottom_left,rgba(244,114,182,0.08),transparent_30%)]" />
+                        <div className="relative flex min-h-[320px] items-center px-6 py-8 sm:px-8 md:min-h-[420px] md:px-12 lg:px-16">
+                            <div className="max-w-[500px]">
+                                <div className="inline-flex rounded-full border border-slate-300 bg-white/92 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-600 shadow-sm backdrop-blur">
+                                    Sponsored Banner
+                                </div>
 
-                                <h1 className="text-3xl md:text-6xl font-extrabold text-gray-900 leading-tight">
+                                <h1 className="mt-5 text-3xl font-black leading-[0.94] tracking-[-0.03em] text-slate-900 sm:text-4xl md:text-5xl lg:text-[58px]">
                                     Discover top featured products
                                 </h1>
 
-                                <p className="text-gray-700 text-sm md:text-lg max-w-xl">
-                                    Promote your store with premium homepage banner
-                                    placement and reach more buyers.
+                                <p className="mt-4 max-w-md text-sm leading-6 text-slate-700 sm:text-base md:text-lg">
+                                    Promote your store with premium homepage banner placement and reach more buyers.
                                 </p>
 
-                                <div className="flex flex-col sm:flex-row gap-3">
-                                    <Link
-                                        href="/seller/banner-ads/create"
-                                        className="bg-black text-white px-5 py-3 rounded-lg text-center"
+                                <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowBannerPrompt(true)}
+                                        className="inline-flex min-w-[190px] items-center justify-center rounded-2xl border border-slate-300 bg-white/85 px-6 py-3.5 text-base font-semibold text-slate-800 backdrop-blur transition hover:bg-white"
                                     >
-                                        Create Banner Ad
-                                    </Link>
+                                        Баннер байршуулах
+                                    </button>
 
                                     <Link
                                         href="/seller/packages"
-                                        className="bg-white text-black px-5 py-3 rounded-lg text-center border"
+                                        className="inline-flex min-w-[170px] items-center justify-center rounded-2xl bg-slate-900 px-6 py-3.5 text-base font-bold text-white transition hover:bg-slate-800"
                                     >
                                         Upgrade Package
                                     </Link>
@@ -128,83 +108,104 @@ export default function HomeHeroBanner() {
         );
     }
 
-    const activeBanner = banners[current];
-    const badge = getSellerBadge(activeBanner.packageTypeSnapshot);
-
     return (
-        <section className="relative w-full bg-transparent">
-            <div className="max-w-7xl mx-auto px-4 md:px-6 pt-4 md:pt-6">
-                <div className="rounded-3xl overflow-hidden shadow-xl bg-[#f6f2fa]">
-                    <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr] min-h-[300px] md:min-h-[460px]">
-                        <div className="p-6 md:p-10 lg:p-12 flex flex-col justify-center">
-                            <div className="flex flex-wrap gap-2 mb-4">
-                                <span
-                                    className={`text-xs px-3 py-1 rounded-full ${badge.className}`}
-                                >
-                                    {badge.label}
-                                </span>
-
-                                <span className="text-xs px-3 py-1 rounded-full bg-white text-black">
-                                    Sponsored
-                                </span>
-                            </div>
-
-                            <h1 className="text-3xl md:text-5xl lg:text-6xl font-extrabold text-gray-900 leading-[1.05]">
-                                {activeBanner.title}
-                            </h1>
-
-                            <p className="text-gray-800 text-sm md:text-base lg:text-lg max-w-xl mt-4 line-clamp-3">
-                                {activeBanner.subtitle || "Featured banner promotion"}
-                            </p>
-
-                            <div className="mt-5">
-                                <p className="font-semibold text-gray-900 text-base md:text-lg">
-                                    {activeBanner.storeNameSnapshot || "Featured Store"}
-                                </p>
-                                <p className="text-sm text-gray-700">
-                                    {activeBanner.locationSnapshot || "Seller location"}
-                                </p>
-                            </div>
-
-                            <div className="mt-6">
-                                <Link
-                                    href={activeBanner.targetLink || "/"}
-                                    className="inline-block bg-black text-white px-5 py-3 rounded-lg"
-                                >
-                                    {activeBanner.targetType === "store" ? "Visit Store" : "Shop Now"}
-                                </Link>
-                            </div>
-                        </div>
-
-                        <div className="relative min-h-[260px] md:min-h-[460px] w-full bg-white">
+        <>
+            <section className="relative w-full bg-transparent">
+                <div className="mx-auto max-w-7xl px-3 pt-3 sm:px-4 md:px-6 md:pt-5">
+                    <div className="relative overflow-hidden rounded-[32px] border border-slate-200 bg-slate-100 shadow-[0_20px_70px_rgba(15,23,42,0.08)]">
+                        <div className="absolute inset-0">
                             <Image
                                 src={`${process.env.NEXT_PUBLIC_API_URL}${activeBanner.image}`}
                                 alt={activeBanner.title}
                                 fill
                                 priority
                                 unoptimized
-                                className="object-contain p-2 md:p-4"
+                                className="object-cover object-center"
                             />
                         </div>
+
+                        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,255,255,0.95)_0%,rgba(255,255,255,0.85)_24%,rgba(255,255,255,0.50)_42%,rgba(255,255,255,0.10)_62%,rgba(255,255,255,0)_100%)]" />
+                        <div className="absolute inset-y-0 left-0 w-full max-w-[720px] bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.10),transparent_28%),radial-gradient(circle_at_bottom_left,rgba(244,114,182,0.10),transparent_30%)]" />
+
+                        <div className="relative z-10 flex min-h-[320px] items-center px-6 py-8 sm:px-8 md:min-h-[420px] md:px-12 lg:px-16">
+                            <div className="max-w-[460px]">
+                                <div className="inline-flex rounded-full border border-slate-300 bg-white/92 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-600 shadow-sm backdrop-blur">
+                                    Sponsored Banner
+                                </div>
+
+                                <h1 className="mt-5 text-3xl font-black leading-[0.94] tracking-[-0.03em] text-slate-900 sm:text-4xl md:text-5xl lg:text-[58px]">
+                                    {activeBanner.title}
+                                </h1>
+
+                                <p className="mt-4 max-w-md text-sm leading-6 text-slate-700 sm:text-base md:text-lg">
+                                    {activeBanner.subtitle ||
+                                        "Онцлох бараагаа нүүрэнд гаргаж, илүү олон худалдан авагчид хүргээрэй."}
+                                </p>
+
+                                <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+                                    <Link
+                                        href={activeBanner.targetLink || "/"}
+                                        className="inline-flex min-w-[170px] items-center justify-center rounded-2xl bg-slate-900 px-6 py-3.5 text-base font-bold text-white transition hover:bg-slate-800"
+                                    >
+                                        {activeBanner.targetType === "store" ? "Дэлгүүр үзэх" : "Бараа үзэх"}
+                                    </Link>
+
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowBannerPrompt(true)}
+                                        className="inline-flex min-w-[190px] items-center justify-center rounded-2xl border border-slate-300 bg-white/85 px-6 py-3.5 text-base font-semibold text-slate-800 backdrop-blur transition hover:bg-white"
+                                    >
+                                        Баннер байршуулах
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {banners.length > 1 && (
+                        <div className="mt-4 flex items-center justify-center gap-2">
+                            {banners.map((banner, index) => (
+                                <button
+                                    key={banner._id}
+                                    onClick={() => setCurrent(index)}
+                                    className={`h-2.5 rounded-full transition-all ${current === index ? "w-8 bg-slate-900" : "w-2.5 bg-slate-300"
+                                        }`}
+                                    aria-label={`Go to banner ${index + 1}`}
+                                />
+                            ))}
+                        </div>
+                    )}
+                </div>
+            </section>
+
+            {showBannerPrompt && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 px-4">
+                    <div className="w-full max-w-md rounded-[28px] bg-white p-6 shadow-2xl">
+                        <h3 className="text-2xl font-black text-slate-900">Баннер байршуулах уу?</h3>
+
+                        <p className="mt-3 text-sm leading-6 text-slate-600">
+                            Баннер байршуулахын тулд эхлээд нэвтэрч, дараа нь баннерын хүсэлтээ илгээнэ үү.
+                        </p>
+
+                        <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+                            <Link
+                                href="/login"
+                                className="inline-flex flex-1 items-center justify-center rounded-2xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
+                            >
+                                Нэвтрэх
+                            </Link>
+                        </div>
+
+                        <button
+                            type="button"
+                            onClick={() => setShowBannerPrompt(false)}
+                            className="mt-4 w-full rounded-2xl px-4 py-3 text-sm font-medium text-slate-500 transition hover:bg-slate-50"
+                        >
+                            Хаах
+                        </button>
                     </div>
                 </div>
-
-                {banners.length > 1 && (
-                    <div className="flex items-center justify-center gap-2 mt-4">
-                        {banners.map((banner, index) => (
-                            <button
-                                key={banner._id}
-                                onClick={() => setCurrent(index)}
-                                className={`h-2.5 rounded-full transition-all ${current === index
-                                    ? "w-8 bg-black"
-                                    : "w-2.5 bg-black/40"
-                                    }`}
-                                aria-label={`Go to banner ${index + 1}`}
-                            />
-                        ))}
-                    </div>
-                )}
-            </div>
-        </section>
+            )}
+        </>
     );
 }

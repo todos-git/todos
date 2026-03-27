@@ -17,6 +17,7 @@ type ExistingBannerAd = {
     targetType: "store" | "product";
     targetProductId?: string;
     durationDays: 7 | 14 | 21;
+    theme?: "blue" | "pink" | "dark" | "gold" | "clean";
 };
 
 type DurationOption = 7 | 14 | 21;
@@ -60,6 +61,7 @@ export default function CreateBannerAdPage() {
     const [title, setTitle] = useState("");
     const [subtitle, setSubtitle] = useState("");
     const [targetType, setTargetType] = useState<"store" | "product">("store");
+    const bannerTone = "clean";
     const [targetProductId, setTargetProductId] = useState("");
     const [durationDays, setDurationDays] = useState<DurationOption>(7);
     const [image, setImage] = useState<File | null>(null);
@@ -141,9 +143,7 @@ export default function CreateBannerAdPage() {
                 setDurationDays((banner.durationDays || 7) as DurationOption);
                 setExistingImagePath(banner.image || "");
                 setExistingImagePreview(
-                    banner.image
-                        ? `${process.env.NEXT_PUBLIC_API_URL}${banner.image}`
-                        : ""
+                    banner.image ? `${process.env.NEXT_PUBLIC_API_URL}${banner.image}` : ""
                 );
             } catch (error) {
                 console.error("FETCH RENEW BANNER ERROR:", error);
@@ -153,6 +153,7 @@ export default function CreateBannerAdPage() {
 
         fetchRenewBanner();
     }, [renewingFromId]);
+
     useEffect(() => {
         if (!image) {
             setImagePreview(existingImagePreview);
@@ -192,15 +193,15 @@ export default function CreateBannerAdPage() {
             const token = localStorage.getItem("token");
 
             const formData = new FormData();
-            formData.append("title", title);
-            formData.append("subtitle", subtitle);
+            formData.append("title", title.trim());
+            formData.append("subtitle", subtitle.trim());
             formData.append("targetType", targetType);
+            formData.append("theme", bannerTone);
             formData.append("durationDays", String(durationDays));
-            if (existingImagePath) {
-                formData.append("existingImage", existingImagePath);
-            }
 
-            if (existingImagePath) {
+            if (image) {
+                formData.append("image", image);
+            } else if (existingImagePath) {
                 formData.append("existingImage", existingImagePath);
             }
 
@@ -268,8 +269,8 @@ export default function CreateBannerAdPage() {
     return (
         <>
             <div className="min-h-screen bg-slate-50 p-6 md:p-10">
-                <div className="mx-auto max-w-7xl grid gap-8 xl:grid-cols-2">
-                    <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-200">
+                <div className="mx-auto grid max-w-7xl gap-8 xl:grid-cols-2">
+                    <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                         <div className="mb-6">
                             <p className="text-sm uppercase tracking-[0.25em] text-slate-400">
                                 Seller Banner Ads
@@ -337,8 +338,8 @@ export default function CreateBannerAdPage() {
                                             setTargetProductId("");
                                         }}
                                         className={`rounded-2xl border px-4 py-3 font-medium transition ${targetType === "store"
-                                            ? "bg-slate-900 text-white border-slate-900"
-                                            : "bg-white text-slate-800 border-slate-200 hover:bg-slate-50"
+                                                ? "border-slate-900 bg-slate-900 text-white"
+                                                : "border-slate-200 bg-white text-slate-800 hover:bg-slate-50"
                                             }`}
                                     >
                                         Дэлгүүр
@@ -348,8 +349,8 @@ export default function CreateBannerAdPage() {
                                         type="button"
                                         onClick={() => setTargetType("product")}
                                         className={`rounded-2xl border px-4 py-3 font-medium transition ${targetType === "product"
-                                            ? "bg-slate-900 text-white border-slate-900"
-                                            : "bg-white text-slate-800 border-slate-200 hover:bg-slate-50"
+                                                ? "border-slate-900 bg-slate-900 text-white"
+                                                : "border-slate-200 bg-white text-slate-800 hover:bg-slate-50"
                                             }`}
                                     >
                                         Бараа
@@ -389,8 +390,8 @@ export default function CreateBannerAdPage() {
                                             type="button"
                                             onClick={() => setDurationDays(d.days)}
                                             className={`rounded-2xl border p-4 text-left transition ${durationDays === d.days
-                                                ? "border-slate-900 bg-slate-900 text-white"
-                                                : "border-slate-200 bg-white hover:bg-slate-50"
+                                                    ? "border-slate-900 bg-slate-900 text-white"
+                                                    : "border-slate-200 bg-white hover:bg-slate-50"
                                                 }`}
                                         >
                                             <p className="text-sm font-medium">{d.label}</p>
@@ -405,7 +406,7 @@ export default function CreateBannerAdPage() {
 
                             <button
                                 disabled={submitting}
-                                className="w-full rounded-2xl bg-black text-white py-3 font-semibold transition hover:opacity-90 disabled:opacity-50"
+                                className="w-full rounded-2xl bg-black py-3 font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
                             >
                                 {submitting
                                     ? "Үүсгэж байна..."
@@ -416,76 +417,73 @@ export default function CreateBannerAdPage() {
 
                     <div className="space-y-4">
                         <div>
-                            <h2 className="text-2xl font-bold text-slate-900">
-                                Live Preview
-                            </h2>
+                            <h2 className="text-2xl font-bold text-slate-900">Live Preview</h2>
                             <p className="mt-1 text-slate-500">
                                 Нүүр хуудсан дээр харагдах урьдчилсан дүрслэл
                             </p>
                         </div>
 
-                        <div className="rounded-[28px] overflow-hidden shadow-xl bg-gradient-to-r from-purple-300 via-pink-300 to-purple-400 min-h-[260px] md:min-h-[420px]">
-                            <div className="grid h-full grid-cols-1 md:grid-cols-2">
-                                <div className="p-6 md:p-8 flex flex-col justify-center">
-                                    <div className="flex flex-wrap gap-2 mb-4">
-                                        <span className="text-xs px-3 py-1 rounded-full bg-white text-black font-medium">
-                                            {selectedDuration?.label}
-                                        </span>
+                        <div className="relative overflow-hidden rounded-[32px] border border-slate-200 bg-slate-100 shadow-[0_20px_70px_rgba(15,23,42,0.08)]">
+                            {imagePreview ? (
+                                <div className="absolute inset-0">
+                                    <Image
+                                        src={imagePreview}
+                                        alt="preview"
+                                        fill
+                                        unoptimized
+                                        className="object-cover object-center"
+                                    />
+                                </div>
+                            ) : (
+                                <div className="absolute inset-0 bg-[linear-gradient(135deg,#f8fafc_0%,#ffffff_45%,#eef2f7_100%)]" />
+                            )}
 
-                                        <span className="text-xs px-3 py-1 rounded-full bg-black text-white font-medium">
-                                            {durationDays} хоног
-                                        </span>
+                            <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,255,255,0.95)_0%,rgba(255,255,255,0.85)_24%,rgba(255,255,255,0.50)_42%,rgba(255,255,255,0.10)_62%,rgba(255,255,255,0)_100%)]" />
+                            <div className="absolute inset-y-0 left-0 w-full max-w-[720px] bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.10),transparent_28%),radial-gradient(circle_at_bottom_left,rgba(244,114,182,0.10),transparent_30%)]" />
 
-                                        <span className="text-xs px-3 py-1 rounded-full bg-white/80 text-slate-800 font-medium">
-                                            {targetType === "store" ? "Дэлгүүр" : "Бараа"}
-                                        </span>
+                            <div className="relative z-10 flex min-h-[320px] items-center px-6 py-8 sm:px-8 md:min-h-[420px] md:px-12 lg:px-16">
+                                <div className="max-w-[460px]">
+                                    <div className="inline-flex rounded-full border border-slate-300 bg-white/92 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-600 shadow-sm backdrop-blur">
+                                        Sponsored Banner
                                     </div>
 
-                                    <h3 className="text-2xl md:text-4xl font-extrabold text-slate-900 leading-tight">
+                                    <h3 className="mt-5 text-3xl font-black leading-[0.94] tracking-[-0.03em] text-slate-900 sm:text-4xl md:text-5xl lg:text-[58px]">
                                         {title.trim() || "Таны баннерын гарчиг энд харагдана"}
                                     </h3>
 
-                                    <p className="mt-3 text-sm md:text-base text-slate-800 line-clamp-3">
-                                        {subtitle.trim() || "Баннерын тайлбар энд харагдана"}
+                                    <p className="mt-4 max-w-md text-sm leading-6 text-slate-700 sm:text-base md:text-lg">
+                                        {subtitle.trim() ||
+                                            "Онцлох бараагаа нүүрэнд гаргаж, илүү олон худалдан авагчид хүргээрэй."}
                                     </p>
 
-                                    <div className="mt-5">
-                                        <p className="font-semibold text-slate-900">
+                                    <div className="mt-6 space-y-1">
+                                        <p className="text-sm font-semibold text-slate-900">
                                             {targetType === "store"
                                                 ? "Таны дэлгүүр"
                                                 : selectedProductName || "Сонгосон бараа"}
                                         </p>
-                                        <p className="text-sm text-slate-700">
+                                        <p className="text-sm text-slate-600">
                                             {targetType === "store"
                                                 ? "Дэлгүүрийн хуудас руу чиглүүлнэ"
                                                 : "Бүтээгдэхүүний хуудас руу чиглүүлнэ"}
                                         </p>
                                     </div>
 
-                                    <div className="mt-6">
+                                    <div className="mt-7 flex flex-col gap-3 sm:flex-row">
                                         <button
                                             type="button"
-                                            className="bg-black text-white px-5 py-3 rounded-xl font-medium"
+                                            className="inline-flex min-w-[165px] items-center justify-center rounded-2xl bg-slate-900 px-6 py-3.5 text-base font-bold text-white shadow-[0_14px_30px_rgba(15,23,42,0.18)] transition hover:-translate-y-0.5"
                                         >
-                                            {targetType === "store" ? "Дэлгүүр үзэх" : "Одоо үзэх"}
+                                            {targetType === "store" ? "Дэлгүүр үзэх" : "Бараа үзэх"}
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            className="inline-flex min-w-[185px] items-center justify-center rounded-2xl border border-slate-300 bg-white/85 px-6 py-3.5 text-base font-semibold text-slate-800 backdrop-blur"
+                                        >
+                                            Нүүрэнд харагдана
                                         </button>
                                     </div>
-                                </div>
-
-                                <div className="relative min-h-[260px] md:min-h-[420px]">
-                                    {imagePreview ? (
-                                        <Image
-                                            src={imagePreview}
-                                            alt="preview"
-                                            fill
-                                            className="object-cover"
-                                            unoptimized
-                                        />
-                                    ) : (
-                                        <div className="absolute inset-0 flex items-center justify-center bg-black/5 text-slate-600">
-                                            Баннерын зураг энд харагдана
-                                        </div>
-                                    )}
                                 </div>
                             </div>
                         </div>
@@ -509,7 +507,7 @@ export default function CreateBannerAdPage() {
                     />
 
                     <div className="relative z-10 w-full max-w-2xl rounded-2xl bg-white p-6 shadow-xl">
-                        <h2 className="text-2xl font-bold mb-4">Баннер үйлчилгээний нөхцөл</h2>
+                        <h2 className="mb-4 text-2xl font-bold">Баннер үйлчилгээний нөхцөл</h2>
 
                         <div className="max-h-[360px] overflow-y-auto rounded-xl border bg-gray-50 p-4 whitespace-pre-line text-sm leading-7 text-gray-700">
                             {BANNER_TERMS_TEXT}
@@ -522,9 +520,7 @@ export default function CreateBannerAdPage() {
                                 onChange={(e) => setAccepted(e.target.checked)}
                                 className="mt-1 h-4 w-4"
                             />
-                            <span className="text-sm text-gray-700">
-                                {BANNER_CHECKBOX_LABEL}
-                            </span>
+                            <span className="text-sm text-gray-700">{BANNER_CHECKBOX_LABEL}</span>
                         </label>
 
                         <div className="mt-6 flex gap-3">
@@ -532,9 +528,7 @@ export default function CreateBannerAdPage() {
                                 type="button"
                                 onClick={handleAcceptTerms}
                                 disabled={!accepted || submitting}
-                                className={`flex-1 rounded-xl py-3 font-semibold text-white ${!accepted || submitting
-                                    ? "bg-gray-400"
-                                    : "bg-black hover:opacity-90"
+                                className={`flex-1 rounded-xl py-3 font-semibold text-white ${!accepted || submitting ? "bg-gray-400" : "bg-black hover:opacity-90"
                                     }`}
                             >
                                 {submitting ? "Хадгалж байна..." : "Зөвшөөрч, үргэлжлүүлэх"}
