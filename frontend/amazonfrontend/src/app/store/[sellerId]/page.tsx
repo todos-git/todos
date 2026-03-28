@@ -545,16 +545,6 @@ export default function StorePage() {
                         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
                             {filteredProducts.map((product) => {
                                 const imageUrl = getImageSrc(product.images?.[0]);
-
-                                <Image
-                                    src={imageUrl}
-                                    alt={product.name}
-                                    width={500}
-                                    height={400}
-                                    unoptimized
-                                    className="h-full w-full object-cover"
-                                />
-
                                 const isOutOfStock = product.stock <= 0;
 
                                 return (
@@ -564,6 +554,15 @@ export default function StorePage() {
                                     >
                                         <Link href={`/products/${product._id}`}>
                                             <div className="relative flex h-64 items-center justify-center overflow-hidden bg-slate-50">
+                                                <Image
+                                                    src={imageUrl}
+                                                    alt={product.name}
+                                                    width={500}
+                                                    height={400}
+                                                    unoptimized
+                                                    className="h-full w-full object-cover"
+                                                />
+
                                                 {product.category && product.category !== "All" && (
                                                     <span
                                                         className={`absolute left-3 top-3 rounded-full border bg-white/90 px-3 py-1 text-xs font-semibold shadow-sm backdrop-blur ${theme.badgeClass}`}
@@ -588,8 +587,8 @@ export default function StorePage() {
                                             <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
                                                 <span
                                                     className={`rounded-full px-3 py-1 font-medium ${isOutOfStock
-                                                        ? "bg-red-100 text-red-700"
-                                                        : "bg-emerald-100 text-emerald-700"
+                                                            ? "bg-red-100 text-red-700"
+                                                            : "bg-emerald-100 text-emerald-700"
                                                         }`}
                                                 >
                                                     {isOutOfStock ? "Дууссан" : `Үлдэгдэл: ${product.stock}`}

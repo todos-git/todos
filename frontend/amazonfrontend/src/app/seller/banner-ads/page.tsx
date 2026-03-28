@@ -13,7 +13,7 @@ type BannerAd = {
     targetLink: string;
     durationDays: 7 | 14 | 21;
     amount: number;
-    status: "pending_payment" | "paid" | "active" | "expired" | "rejected";
+    status: "draft" | "pending_payment" | "paid" | "active" | "expired" | "rejected";
     storeNameSnapshot?: string;
     locationSnapshot?: string;
     packageTypeSnapshot?: "free" | "basic" | "pro" | "premium";
@@ -83,6 +83,24 @@ function getPackageBadge(packageType?: string) {
 }
 
 export default function MyBannerAdsPage() {
+
+    const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") || "";
+
+    const getImageSrc = (src?: string) => {
+        if (!src) return "";
+
+        if (
+            src.startsWith("http://") ||
+            src.startsWith("https://") ||
+            src.startsWith("blob:") ||
+            src.startsWith("data:")
+        ) {
+            return src;
+        }
+
+        const normalizedSrc = src.startsWith("/") ? src : `/${src}`;
+        return apiBaseUrl ? `${apiBaseUrl}${normalizedSrc}` : normalizedSrc;
+    };
     const [ads, setAds] = useState<BannerAd[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -143,7 +161,9 @@ export default function MyBannerAdsPage() {
         return {
             total: ads.length,
             active: ads.filter((a) => a.status === "active").length,
-            pending: ads.filter((a) => a.status === "pending_payment").length,
+            pending: ads.filter(
+                (a) => a.status === "pending_payment" || a.status === "draft"
+            ).length,
             expired: ads.filter((a) => a.status === "expired").length,
         };
     }, [ads]);
@@ -306,7 +326,7 @@ export default function MyBannerAdsPage() {
                                     {/* IMAGE */}
                                     <div className="relative h-[220px] md:h-full">
                                         <Image
-                                            src={`${process.env.NEXT_PUBLIC_API_URL}${ad.image}`}
+                                            src={getImageSrc(ad.image)}
                                             alt={ad.title}
                                             fill
                                             className="object-cover"

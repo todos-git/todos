@@ -218,10 +218,60 @@ router.get("/:id", authMiddleware, async (req, res) => {
     }
 });
 
-// CONFIRM PAYMENT (demo/manual)
+// CANCEL PAYMENT
+router.delete("/:id", authMiddleware, async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({ message: "Invalid payment id" });
+        }
+
+        const payment = await Payment.findById(id);
+
+        if (!payment) {
+            return res.status(404).json({ message: "Payment not found" });
+        }
+
+        if (payment.userId.toString() !== req.user._id.toString()) {
+            return res.status(403).json({ message: "Not authorized" });
+        }
+
+        if (payment.status === "approved") {
+            return res.status(400).json({
+                message: "Баталгаажсан төлбөрийг цуцлах боломжгүй",
+            });
+        }
+
+        await TermAcceptance.deleteMany({
+            userId: req.user._id,
+            type: "package",
+            targetId: payment._id,
+            termsVersion: PACKAGE_TERMS_VERSION,
+        });
+
+        await payment.deleteOne();
+
+        res.json({ message: "Payment cancelled successfully" });
+    } catch (error) {
+        console.error("CANCEL PAYMENT ERROR:", error);
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// CONFIRM PAYMENT (seller clicked "I have paid")
 router.post("/confirm-demo/:id", authMiddleware, async (req, res) => {
     try {
         const payment = await Payment.findById(req.params.id);
+
+        if (!payment) {
+            return res.status(404).json({ message: "Payment not found" });
+        }
+
+        if (payment.userId.toString() !== req.user._id.toString()) {
+            return res.status(403).json({ message: "Not authorized" });
+        }
+
         const acceptedTerms = await TermAcceptance.findOne({
             userId: req.user._id,
             type: "package",
@@ -235,17 +285,58 @@ router.post("/confirm-demo/:id", authMiddleware, async (req, res) => {
             });
         }
 
-        if (!payment) return res.status(404).json({ message: "Not found" });
-
-        if (payment.status === "paid") {
-            return res.json({ message: "Already paid" });
+        if (payment.status === "approved") {
+            return res.json({
+                message: "Payment already approved",
+                status: payment.status,
+            });
         }
 
-        payment.status = "paid";
+        payment.status = "pending_approval";
         payment.paidAt = new Date();
         await payment.save();
 
+        res.json({
+            message: "Төлбөр шалгах хүлээгдэж байна",
+            status: payment.status,
+        });
+    } catch (err) {
+        console.error("CONFIRM PAYMENT ERROR:", err);
+        res.status(500).json({ message: err.message });
+    }
+});
+
+// ADMIN APPROVE PAYMENT
+router.post("/:id/admin-approve", authMiddleware, async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({ message: "Invalid payment id" });
+        }
+
+        const adminUser = await User.findById(req.user._id);
+
+        if (!adminUser || !["admin", "superadmin"].includes(adminUser.role)) {
+            return res.status(403).json({ message: "Admin only" });
+        }
+
+        const payment = await Payment.findById(id);
+
+        if (!payment) {
+            return res.status(404).json({ message: "Payment not found" });
+        }
+
+        if (payment.status === "approved") {
+            return res.json({ message: "Payment already approved", payment });
+        }
+
         const user = await User.findById(payment.userId);
+
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
         const config = getPackageConfig(payment.packageType);
 
         user.packageType = payment.packageType;
@@ -258,10 +349,24 @@ router.post("/confirm-demo/:id", authMiddleware, async (req, res) => {
 
         await user.save();
 
-        res.json({ message: "Package activated", packageType: user.packageType });
+        payment.status = "approved";
+        payment.paidAt = payment.paidAt || new Date();
+        await payment.save();
 
-    } catch (err) {
-        res.status(500).json({ message: err.message });
+        res.json({
+            message: "Payment approved and package activated",
+            payment,
+            user: {
+                _id: user._id,
+                packageType: user.packageType,
+                productLimit: user.productLimit,
+                canShowLocation: user.canShowLocation,
+                packageExpiresAt: user.packageExpiresAt,
+            },
+        });
+    } catch (error) {
+        console.error("ADMIN APPROVE PAYMENT ERROR:", error);
+        res.status(500).json({ message: error.message });
     }
 });
 

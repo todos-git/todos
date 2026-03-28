@@ -24,15 +24,17 @@ const PACKAGE_TERMS_TEXT = `
 const PACKAGE_CHECKBOX_LABEL =
     "Би үйлчилгээний нөхцөлтэй бүрэн танилцаж, багц идэвхжсэний дараа ердийн нөхцөлд төлбөр буцаагдахгүй болохыг ойлгож зөвшөөрч байна.";
 
+type PackageType = "basic" | "pro" | "premium";
+
 export default function SellerPackages() {
     const router = useRouter();
 
-    const [pendingPackageType, setPendingPackageType] = useState<string | null>(null);
+    const [pendingPackageType, setPendingPackageType] = useState<PackageType | null>(null);
     const [termsOpen, setTermsOpen] = useState(false);
     const [accepted, setAccepted] = useState(false);
     const [submitting, setSubmitting] = useState(false);
 
-    const openTerms = (type: string) => {
+    const openTerms = (type: PackageType) => {
         setPendingPackageType(type);
         setAccepted(false);
         setTermsOpen(true);
@@ -82,7 +84,7 @@ export default function SellerPackages() {
             setTermsOpen(false);
             router.push(`/seller/packages/payment/${data._id}`);
         } catch (error) {
-            console.error(error);
+            console.error("PACKAGE CONTINUE ERROR:", error);
             alert(error instanceof Error ? error.message : "Алдаа гарлаа");
         } finally {
             setSubmitting(false);
@@ -92,68 +94,128 @@ export default function SellerPackages() {
     return (
         <>
             <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100 p-8">
-                <div className="max-w-6xl mx-auto">
-                    <h1 className="text-3xl font-bold mb-8 text-center">
-                        Багц сонгох
-                    </h1>
+                <div className="mx-auto max-w-6xl">
+                    <div className="mb-10 text-center">
+                        <p className="text-sm font-semibold uppercase tracking-[0.22em] text-red-500">
+                            Launch Promotion
+                        </p>
+                        <h1 className="mt-3 text-3xl font-black text-slate-900 md:text-4xl">
+                            Нээлтийн урамшуулалтай багцууд
+                        </h1>
+                        <p className="mt-3 text-slate-500">
+                            Хязгаарлагдмал хугацаанд хямдарсан үнээр багцаа идэвхжүүлээрэй.
+                        </p>
+                    </div>
 
-                    <div className="grid md:grid-cols-3 gap-6">
-                        <div className="rounded-2xl p-6 shadow bg-white border hover:shadow-xl transition">
-                            <h2 className="text-xl font-bold text-blue-600">Basic</h2>
-                            <p className="text-2xl font-bold mt-2">₮39,000</p>
+                    <div className="grid gap-6 md:grid-cols-3">
+                        {/* BASIC */}
+                        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-xl">
+                            <div className="inline-flex rounded-full bg-red-50 px-3 py-1 text-xs font-bold text-red-600">
+                                🔥 Нээлтийн урамшуулал
+                            </div>
 
-                            <ul className="mt-4 space-y-2 text-sm text-gray-600">
+                            <h2 className="mt-4 text-2xl font-black text-blue-600">Basic</h2>
+
+                            <div className="mt-4 flex items-end gap-3">
+                                <span className="text-lg text-slate-400 line-through">
+                                    ₮39,000
+                                </span>
+                                <span className="text-3xl font-black text-slate-900">
+                                    ₮19,000
+                                </span>
+                            </div>
+
+                            <p className="mt-2 text-sm text-slate-500">3 сарын хугацаа</p>
+
+                            <ul className="mt-6 space-y-3 text-sm text-slate-600">
                                 <li>• 30 бүтээгдэхүүн</li>
                                 <li>• Байршил харах боломжтой</li>
-                                <li>• 3 сарын хугацаа</li>
+                                <li>• Илүү найдвартай дэлгүүрийн дүр төрх</li>
                             </ul>
 
                             <button
+                                type="button"
                                 onClick={() => openTerms("basic")}
-                                className="mt-6 w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700"
+                                className="mt-8 w-full rounded-2xl bg-blue-600 py-3 font-semibold text-white transition hover:bg-blue-700"
                             >
                                 Сонгох
                             </button>
                         </div>
 
-                        <div className="rounded-2xl p-6 shadow bg-white border hover:shadow-xl transition">
-                            <h2 className="text-xl font-bold text-green-600">Pro</h2>
-                            <p className="text-2xl font-bold mt-2">₮59,000</p>
+                        {/* PRO */}
+                        <div className="relative rounded-3xl border-2 border-green-500 bg-white p-6 shadow-xl transition hover:-translate-y-1 hover:shadow-2xl">
+                            <span className="absolute right-4 top-4 rounded-full bg-green-600 px-3 py-1 text-xs font-bold text-white">
+                                Best Value
+                            </span>
 
-                            <ul className="mt-4 space-y-2 text-sm text-gray-600">
+                            <div className="inline-flex rounded-full bg-red-50 px-3 py-1 text-xs font-bold text-red-600">
+                                🔥 Нээлтийн урамшуулал
+                            </div>
+
+                            <h2 className="mt-4 text-2xl font-black text-green-600">Pro</h2>
+
+                            <div className="mt-4 flex items-end gap-3">
+                                <span className="text-lg text-slate-400 line-through">
+                                    ₮59,000
+                                </span>
+                                <span className="text-3xl font-black text-slate-900">
+                                    ₮39,000
+                                </span>
+                            </div>
+
+                            <p className="mt-2 text-sm text-slate-500">3 сарын хугацаа</p>
+
+                            <ul className="mt-6 space-y-3 text-sm text-slate-600">
                                 <li>• 60 бүтээгдэхүүн</li>
                                 <li>• Байршил харах боломжтой</li>
                                 <li>• Илүү өндөр эрэмбэ</li>
-                                <li>• 3 сарын хугацаа</li>
+                                <li>• Илүү мэргэжлийн харагдац</li>
                             </ul>
 
                             <button
+                                type="button"
                                 onClick={() => openTerms("pro")}
-                                className="mt-6 w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700"
+                                className="mt-8 w-full rounded-2xl bg-green-600 py-3 font-semibold text-white transition hover:bg-green-700"
                             >
                                 Сонгох
                             </button>
                         </div>
 
-                        <div className="rounded-2xl p-6 shadow-lg bg-gradient-to-br from-yellow-100 to-yellow-50 border-2 border-yellow-400 relative hover:scale-[1.02] transition">
-                            <span className="absolute top-2 right-2 text-xs bg-yellow-400 text-white px-2 py-1 rounded-full">
-                                TOP
+                        {/* PREMIUM */}
+                        <div className="relative rounded-3xl border-2 border-yellow-400 bg-gradient-to-br from-yellow-100 to-yellow-50 p-6 shadow-xl transition hover:-translate-y-1 hover:shadow-2xl">
+                            <span className="absolute right-4 top-4 rounded-full bg-yellow-500 px-3 py-1 text-xs font-bold text-white">
+                                👑 Premium
                             </span>
 
-                            <h2 className="text-xl font-bold text-yellow-700">Premium</h2>
-                            <p className="text-2xl font-bold mt-2">₮89,000</p>
+                            <div className="inline-flex rounded-full bg-red-50 px-3 py-1 text-xs font-bold text-red-600">
+                                🔥 Нээлтийн урамшуулал
+                            </div>
 
-                            <ul className="mt-4 space-y-2 text-sm text-gray-700">
+                            <h2 className="mt-4 text-2xl font-black text-yellow-700">Premium</h2>
+
+                            <div className="mt-4 flex items-end gap-3">
+                                <span className="text-lg text-slate-400 line-through">
+                                    ₮89,000
+                                </span>
+                                <span className="text-3xl font-black text-slate-900">
+                                    ₮59,000
+                                </span>
+                            </div>
+
+                            <p className="mt-2 text-sm text-slate-600">3 сарын хугацаа</p>
+
+                            <ul className="mt-6 space-y-3 text-sm text-slate-700">
                                 <li>• 100 бүтээгдэхүүн</li>
                                 <li>• Байршил харагдана</li>
-                                <li>• Featured дээр гарна</li>
+                                <li>• Featured боломж</li>
                                 <li>• Top seller боломж</li>
-                                <li>• 3 сарын хугацаа</li>
+                                <li>• Илүү хүчтэй борлуулалтын байрлал</li>
                             </ul>
 
                             <button
+                                type="button"
                                 onClick={() => openTerms("premium")}
-                                className="mt-6 w-full bg-yellow-500 text-white py-2 rounded-lg hover:bg-yellow-600"
+                                className="mt-8 w-full rounded-2xl bg-yellow-500 py-3 font-semibold text-white transition hover:bg-yellow-600"
                             >
                                 Сонгох
                             </button>
@@ -172,9 +234,9 @@ export default function SellerPackages() {
                     />
 
                     <div className="relative z-10 w-full max-w-2xl rounded-2xl bg-white p-6 shadow-xl">
-                        <h2 className="text-2xl font-bold mb-4">Үйлчилгээний нөхцөл</h2>
+                        <h2 className="mb-4 text-2xl font-bold">Үйлчилгээний нөхцөл</h2>
 
-                        <div className="max-h-[360px] overflow-y-auto rounded-xl border bg-gray-50 p-4 whitespace-pre-line text-sm leading-7 text-gray-700">
+                        <div className="max-h-[360px] overflow-y-auto whitespace-pre-line rounded-xl border bg-gray-50 p-4 text-sm leading-7 text-gray-700">
                             {PACKAGE_TERMS_TEXT}
                         </div>
 
@@ -196,8 +258,8 @@ export default function SellerPackages() {
                                 onClick={handleContinue}
                                 disabled={!accepted || submitting}
                                 className={`flex-1 rounded-xl py-3 font-semibold text-white ${!accepted || submitting
-                                        ? "bg-gray-400"
-                                        : "bg-black hover:opacity-90"
+                                    ? "bg-gray-400"
+                                    : "bg-black hover:opacity-90"
                                     }`}
                             >
                                 {submitting ? "Үүсгэж байна..." : "Зөвшөөрч, үргэлжлүүлэх"}

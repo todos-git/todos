@@ -12,6 +12,7 @@ const Product = require("../models/Product");
 const authMiddleware = require("../middleware/authMiddleware");
 const { getBannerPricing } = require("../utils/bannerPricing");
 const TermAcceptance = require("../models/TermAcceptance");
+
 const {
     BANNER_TERMS_VERSION,
     BANNER_CHECKBOX_LABEL,
@@ -491,6 +492,14 @@ router.delete("/:id", authMiddleware, async (req, res) => {
                 message: "Идэвхтэй баннерыг устгах боломжгүй",
             });
         }
+
+
+
+        await TermAcceptance.deleteMany({
+            userId: req.user._id,
+            type: "banner",
+            targetId: ad._id,
+        });
 
         await ad.deleteOne();
 
