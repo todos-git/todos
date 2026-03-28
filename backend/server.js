@@ -84,8 +84,10 @@ async function createSuperAdmin() {
 
         await User.create({
             email: "admin@site.mn",
+            phone: "99112233",
             password: hashedPassword,
             role: "superadmin",
+            isVerified: true,
         });
 
         console.log("✅ Super admin created");

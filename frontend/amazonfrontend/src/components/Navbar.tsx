@@ -437,6 +437,15 @@ function NavbarContent() {
                                     </button>
                                 )}
 
+                                {isLoggedIn && (role === "admin" || role === "superadmin") && (
+                                    <button
+                                        onClick={() => router.push("/admin/payments")}
+                                        className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-800 transition hover:bg-slate-50"
+                                    >
+                                        Админ самбар
+                                    </button>
+                                )}
+
                                 {isLoggedIn && (
                                     <button
                                         onClick={handleLogout}
@@ -624,6 +633,18 @@ function NavbarContent() {
                                             Захиалгууд
                                         </button>
                                     </>
+                                )}
+
+                                {isLoggedIn && (role === "admin" || role === "superadmin") && (
+                                    <button
+                                        onClick={() => {
+                                            router.push("/admin/payments");
+                                            setMobileMenu(false);
+                                        }}
+                                        className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left text-sm font-semibold text-slate-800"
+                                    >
+                                        Админ самбар
+                                    </button>
                                 )}
 
                                 {isLoggedIn && (

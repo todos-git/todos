@@ -306,6 +306,28 @@ router.post("/confirm-demo/:id", authMiddleware, async (req, res) => {
     }
 });
 
+// ADMIN GET PENDING PAYMENTS
+router.get("/admin/pending", authMiddleware, async (req, res) => {
+    try {
+        const adminUser = await User.findById(req.user._id);
+
+        if (!adminUser || !["admin", "superadmin"].includes(adminUser.role)) {
+            return res.status(403).json({ message: "Admin only" });
+        }
+
+        const payments = await Payment.find({
+            status: { $in: ["pending_approval"] },
+        })
+            .populate("userId", "email storeName phone")
+            .sort({ createdAt: -1 });
+
+        res.json(payments);
+    } catch (error) {
+        console.error("ADMIN GET PENDING PAYMENTS ERROR:", error);
+        res.status(500).json({ message: error.message });
+    }
+});
+
 // ADMIN APPROVE PAYMENT
 router.post("/:id/admin-approve", authMiddleware, async (req, res) => {
     try {
