@@ -10,39 +10,22 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const authMiddleware = require("../middleware/authMiddleware");
 const crypto = require("crypto");
-const nodemailer = require("nodemailer");
-const dns = require("dns");
+const { Resend } = require("resend");
 const { checkAndDowngradePackage } = require("../utils/checkAndDowngradePackage");
 
-// ================= MAIL HELPERS =================
-const createMailTransporter = () => {
-    return nodemailer.createTransport({
-        host: "smtp.gmail.com",
-        port: 587,
-        secure: false,
-        requireTLS: true,
-        auth: {
-            user: process.env.MAIL_USER,
-            pass: process.env.MAIL_PASS,
-        },
-        // force IPv4 lookup to avoid IPv6 ENETUNREACH on Render
-        lookup: (hostname, options, callback) => {
-            return dns.lookup(hostname, { family: 4, all: false }, callback);
-        },
-        tls: {
-            servername: "smtp.gmail.com",
-        },
-        connectionTimeout: 10000,
-        greetingTimeout: 10000,
-        socketTimeout: 15000,
-    });
-};
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 const normalizePhone = (phone) => {
     return String(phone || "")
         .replace(/\s+/g, "")
         .replace(/^\+976/, "")
         .trim();
+};
+
+const getFromEmail = () => {
+    // production дээр өөрийн verified domain-оо ашигла
+    // жишээ: TODOS <noreply@mail.todos.mn>
+    return "TODOS <noreply@mail.todos.mn>";
 };
 
 // ================= REGISTER =================
@@ -88,10 +71,7 @@ router.post("/register", async (req, res) => {
         }
 
         const existingUser = await User.findOne({
-            $or: [
-                { email: normalizedEmail },
-                { phone: normalizedPhone },
-            ],
+            $or: [{ email: normalizedEmail }, { phone: normalizedPhone }],
         });
 
         if (existingUser) {
@@ -113,18 +93,16 @@ router.post("/register", async (req, res) => {
 
         const verifyLink = `${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/verify-email/${verificationToken}`;
 
-        console.log("MAIL USER:", process.env.MAIL_USER);
+        console.log("RESEND API KEY EXISTS:", !!process.env.RESEND_API_KEY);
         console.log("NEXT_PUBLIC_SITE_URL:", process.env.NEXT_PUBLIC_SITE_URL);
         console.log("VERIFY LINK:", verifyLink);
 
-        const transporter = createMailTransporter();
-
         try {
-            console.log("BEFORE SENDMAIL TO:", normalizedEmail);
+            console.log("BEFORE RESEND TO:", normalizedEmail);
 
-            const info = await transporter.sendMail({
-                from: process.env.MAIL_USER,
-                to: normalizedEmail,
+            const { data, error } = await resend.emails.send({
+                from: getFromEmail(),
+                to: [normalizedEmail],
                 subject: "Имэйл баталгаажуулах",
                 html: `
 <div style="max-width:600px;margin:0 auto;padding:32px 24px;font-family:Arial,sans-serif;background:#f8fafc;color:#0f172a;">
@@ -167,9 +145,17 @@ router.post("/register", async (req, res) => {
 `,
             });
 
-            console.log("SENDMAIL SUCCESS:", info.messageId);
+            if (error) {
+                console.error("RESEND ERROR:", error);
+                return res.status(500).json({
+                    message: "Баталгаажуулах имэйл илгээж чадсангүй",
+                    error: error.message || "Resend error",
+                });
+            }
+
+            console.log("RESEND SUCCESS:", data?.id);
         } catch (mailError) {
-            console.error("SENDMAIL ERROR:", mailError);
+            console.error("RESEND SEND ERROR:", mailError);
 
             return res.status(500).json({
                 message: "Баталгаажуулах имэйл илгээж чадсангүй",
@@ -203,9 +189,8 @@ router.post("/register", async (req, res) => {
     }
 });
 
-// optional: friendlier GET response instead of Cannot GET
 router.get("/register", (req, res) => {
-    res.status(405).json({
+    return res.status(405).json({
         message: "Use POST for /api/auth/register",
     });
 });
@@ -276,6 +261,7 @@ router.post("/login", async (req, res) => {
 router.post("/forgot-password", async (req, res) => {
     try {
         const { email } = req.body;
+
         const cleanEmail = email?.trim().toLowerCase();
 
         if (!cleanEmail) {
@@ -302,12 +288,10 @@ router.post("/forgot-password", async (req, res) => {
 
         const resetLink = `${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/reset-password/${resetToken}`;
 
-        const transporter = createMailTransporter();
-
         try {
-            const info = await transporter.sendMail({
-                from: process.env.MAIL_USER,
-                to: cleanEmail,
+            const { data, error } = await resend.emails.send({
+                from: getFromEmail(),
+                to: [cleanEmail],
                 subject: "Нууц үг сэргээх хүсэлт",
                 html: `
                     <h2>Нууц үг сэргээх</h2>
@@ -318,9 +302,17 @@ router.post("/forgot-password", async (req, res) => {
                 `,
             });
 
-            console.log("FORGOT PASSWORD SENDMAIL SUCCESS:", info.messageId);
+            if (error) {
+                console.error("FORGOT PASSWORD RESEND ERROR:", error);
+                return res.status(500).json({
+                    message: "Нууц үг сэргээх имэйл илгээж чадсангүй",
+                    error: error.message || "Resend error",
+                });
+            }
+
+            console.log("FORGOT PASSWORD RESEND SUCCESS:", data?.id);
         } catch (mailError) {
-            console.error("FORGOT PASSWORD SENDMAIL ERROR:", mailError);
+            console.error("FORGOT PASSWORD RESEND SEND ERROR:", mailError);
             return res.status(500).json({
                 message: "Нууц үг сэргээх имэйл илгээж чадсангүй",
                 error: mailError.message,

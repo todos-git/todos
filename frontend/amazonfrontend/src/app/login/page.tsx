@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
 function LoginContent() {
-    const [email, setEmail] = useState("");
+    const [phone, setPhone] = useState("");
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
 
@@ -14,9 +14,21 @@ function LoginContent() {
 
     const redirect = searchParams.get("redirect");
 
+    const normalizePhone = (value: string) => {
+        return value.replace(/\s+/g, "").replace(/^\+976/, "").trim();
+    };
+
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
+
+        const cleanPhone = normalizePhone(phone);
+
+        if (!/^[0-9]{8}$/.test(cleanPhone)) {
+            alert("Утасны дугаар 8 оронтой байх ёстой");
+            setLoading(false);
+            return;
+        }
 
         try {
             const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/login`, {
@@ -24,7 +36,7 @@ function LoginContent() {
                 headers: {
                     "Content-Type": "application/json",
                 },
-                body: JSON.stringify({ email, password }),
+                body: JSON.stringify({ phone: cleanPhone, password }),
             });
 
             const data = await res.json();
@@ -68,11 +80,13 @@ function LoginContent() {
                 </h1>
 
                 <input
-                    type="email"
-                    placeholder="И-мэйл хаяг"
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={8}
+                    placeholder="Утасны дугаар"
                     className="mb-4 w-full rounded-xl border border-slate-300 p-3 outline-none transition focus:border-slate-500"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value.replace(/[^\d+]/g, ""))}
                     required
                 />
 
@@ -84,6 +98,7 @@ function LoginContent() {
                     onChange={(e) => setPassword(e.target.value)}
                     required
                 />
+
                 <div className="mb-4 text-right">
                     <Link
                         href="/forgot-password"
