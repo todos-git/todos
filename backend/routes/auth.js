@@ -104,15 +104,24 @@ router.post("/register", async (req, res) => {
                 user: process.env.MAIL_USER,
                 pass: process.env.MAIL_PASS,
             },
+            connectionTimeout: 10000,
+            greetingTimeout: 10000,
+            socketTimeout: 15000,
         });
 
         const verifyLink = `${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/verify-email/${verificationToken}`;
+        console.log("MAIL USER:", process.env.MAIL_USER);
+        console.log("NEXT_PUBLIC_SITE_URL:", process.env.NEXT_PUBLIC_SITE_URL);
+        console.log("VERIFY LINK:", verifyLink);
 
-        await transporter.sendMail({
-            from: process.env.MAIL_USER,
-            to: normalizedEmail,
-            subject: "Имэйл баталгаажуулах",
-            html: `
+        try {
+            console.log("BEFORE SENDMAIL TO:", normalizedEmail);
+
+            const info = await transporter.sendMail({
+                from: process.env.MAIL_USER,
+                to: normalizedEmail,
+                subject: "Имэйл баталгаажуулах",
+                html: `
 <div style="max-width:600px;margin:0 auto;padding:32px 24px;font-family:Arial,sans-serif;background:#f8fafc;color:#0f172a;">
     <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:16px;padding:32px;">
         
@@ -155,7 +164,17 @@ router.post("/register", async (req, res) => {
     </div>
 </div>
 `,
-        });
+            });
+
+            console.log("SENDMAIL SUCCESS:", info.messageId);
+        } catch (mailError) {
+            console.error("SENDMAIL ERROR:", mailError);
+
+            return res.status(500).json({
+                message: "Баталгаажуулах имэйл илгээж чадсангүй",
+                error: mailError.message,
+            });
+        }
 
         res.json({
             message: "Баталгаажуулах имэйл илгээгдлээ",
