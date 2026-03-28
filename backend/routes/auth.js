@@ -11,16 +11,39 @@ const jwt = require("jsonwebtoken");
 const authMiddleware = require("../middleware/authMiddleware");
 const crypto = require("crypto");
 const nodemailer = require("nodemailer");
+const dns = require("dns");
 const { checkAndDowngradePackage } = require("../utils/checkAndDowngradePackage");
 
+// ================= MAIL HELPERS =================
+const createMailTransporter = () => {
+    return nodemailer.createTransport({
+        host: "smtp.gmail.com",
+        port: 587,
+        secure: false,
+        requireTLS: true,
+        auth: {
+            user: process.env.MAIL_USER,
+            pass: process.env.MAIL_PASS,
+        },
+        // force IPv4 lookup to avoid IPv6 ENETUNREACH on Render
+        lookup: (hostname, options, callback) => {
+            return dns.lookup(hostname, { family: 4, all: false }, callback);
+        },
+        tls: {
+            servername: "smtp.gmail.com",
+        },
+        connectionTimeout: 10000,
+        greetingTimeout: 10000,
+        socketTimeout: 15000,
+    });
+};
 
-
-
-
-
-
-
-
+const normalizePhone = (phone) => {
+    return String(phone || "")
+        .replace(/\s+/g, "")
+        .replace(/^\+976/, "")
+        .trim();
+};
 
 // ================= REGISTER =================
 router.post("/register", async (req, res) => {
@@ -31,11 +54,10 @@ router.post("/register", async (req, res) => {
 
         const normalizedEmail = email?.trim().toLowerCase();
         const normalizedRole = role === "seller" ? "seller" : "user";
+        const normalizedPhone = normalizePhone(phone);
 
         const normalizedCategories = Array.isArray(categories)
-            ? categories
-                .map((item) => String(item).trim())
-                .filter(Boolean)
+            ? categories.map((item) => String(item).trim()).filter(Boolean)
             : category?.trim()
                 ? [category.trim()]
                 : [];
@@ -52,15 +74,14 @@ router.post("/register", async (req, res) => {
             });
         }
 
-        if (!phone || !phone.trim()) {
+        if (!normalizedPhone) {
             return res.status(400).json({
                 message: "Утасны дугаараа оруулна уу",
             });
         }
 
         const phoneRegex = /^[0-9]{8}$/;
-
-        if (!phoneRegex.test(phone.trim())) {
+        if (!phoneRegex.test(normalizedPhone)) {
             return res.status(400).json({
                 message: "Утасны дугаар 8 оронтой байх ёстой",
             });
@@ -69,7 +90,7 @@ router.post("/register", async (req, res) => {
         const existingUser = await User.findOne({
             $or: [
                 { email: normalizedEmail },
-                { phone: phone.trim() },
+                { phone: normalizedPhone },
             ],
         });
 
@@ -90,27 +111,13 @@ router.post("/register", async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, 10);
         const verificationToken = crypto.randomBytes(32).toString("hex");
 
-
-
-        const transporter = nodemailer.createTransport({
-            host: "smtp.gmail.com",
-            port: 587,
-            secure: false,
-            requireTLS: true,
-            auth: {
-                user: process.env.MAIL_USER,
-                pass: process.env.MAIL_PASS,
-            },
-            family: 4,
-            connectionTimeout: 10000,
-            greetingTimeout: 10000,
-            socketTimeout: 15000,
-        });
-
         const verifyLink = `${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/verify-email/${verificationToken}`;
+
         console.log("MAIL USER:", process.env.MAIL_USER);
         console.log("NEXT_PUBLIC_SITE_URL:", process.env.NEXT_PUBLIC_SITE_URL);
         console.log("VERIFY LINK:", verifyLink);
+
+        const transporter = createMailTransporter();
 
         try {
             console.log("BEFORE SENDMAIL TO:", normalizedEmail);
@@ -122,10 +129,7 @@ router.post("/register", async (req, res) => {
                 html: `
 <div style="max-width:600px;margin:0 auto;padding:32px 24px;font-family:Arial,sans-serif;background:#f8fafc;color:#0f172a;">
     <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:16px;padding:32px;">
-        
-        <h2 style="margin:0 0 16px;font-size:24px;">
-            Имэйл баталгаажуулалт
-        </h2>
+        <h2 style="margin:0 0 16px;font-size:24px;">Имэйл баталгаажуулалт</h2>
 
         <p style="margin:0 0 14px;color:#475569;">
             TODOS marketplace-д бүртгүүлсэнд баярлалаа.
@@ -158,25 +162,12 @@ router.post("/register", async (req, res) => {
         <p style="font-size:13px;color:#94a3b8;">
             Хэрвээ та энэ бүртгэлийг өөрөө хийгээгүй бол энэ имэйлийг үл тооно уу.
         </p>
-
     </div>
 </div>
 `,
             });
 
             console.log("SENDMAIL SUCCESS:", info.messageId);
-            const newUser = await User.create({
-                email: normalizedEmail,
-                phone: phone.trim(),
-                password: hashedPassword,
-                role: normalizedRole,
-                storeName: normalizedRole === "seller" ? storeName.trim() : "",
-                categories: normalizedRole === "seller" ? normalizedCategories : [],
-                location: normalizedRole === "seller" ? location.trim() : "",
-                verificationToken,
-            });
-
-            console.log("REGISTERED USER:", newUser.email);
         } catch (mailError) {
             console.error("SENDMAIL ERROR:", mailError);
 
@@ -186,25 +177,44 @@ router.post("/register", async (req, res) => {
             });
         }
 
-        res.json({
+        const newUser = await User.create({
+            email: normalizedEmail,
+            phone: normalizedPhone,
+            password: hashedPassword,
+            role: normalizedRole,
+            storeName: normalizedRole === "seller" ? storeName.trim() : "",
+            categories: normalizedRole === "seller" ? normalizedCategories : [],
+            location: normalizedRole === "seller" ? location.trim() : "",
+            verificationToken,
+        });
+
+        console.log("REGISTERED USER:", newUser.email);
+
+        return res.json({
             message: "Баталгаажуулах имэйл илгээгдлээ",
         });
     } catch (error) {
         console.log("REGISTER ERROR:", error);
 
-        res.status(500).json({
+        return res.status(500).json({
             message: "Бүртгэхэд алдаа гарлаа",
             error: error.message,
         });
     }
 });
 
+// optional: friendlier GET response instead of Cannot GET
+router.get("/register", (req, res) => {
+    res.status(405).json({
+        message: "Use POST for /api/auth/register",
+    });
+});
+
 // ================= LOGIN =================
 router.post("/login", async (req, res) => {
     try {
         const { phone, password } = req.body;
-
-        const cleanPhone = phone?.trim();
+        const cleanPhone = normalizePhone(phone);
 
         if (!cleanPhone || !password) {
             return res.status(400).json({
@@ -242,11 +252,12 @@ router.post("/login", async (req, res) => {
             { expiresIn: "7d" }
         );
 
-        res.json({
+        return res.json({
             token,
             user: {
                 _id: user._id,
                 email: user.email,
+                phone: user.phone,
                 role: user.role,
                 storeName: user.storeName || "",
                 category: user.category || "",
@@ -257,7 +268,7 @@ router.post("/login", async (req, res) => {
         });
     } catch (error) {
         console.log("LOGIN ERROR:", error);
-        res.status(500).json({ message: error.message });
+        return res.status(500).json({ message: error.message });
     }
 });
 
@@ -265,7 +276,6 @@ router.post("/login", async (req, res) => {
 router.post("/forgot-password", async (req, res) => {
     try {
         const { email } = req.body;
-
         const cleanEmail = email?.trim().toLowerCase();
 
         if (!cleanEmail) {
@@ -276,7 +286,6 @@ router.post("/forgot-password", async (req, res) => {
 
         const user = await User.findOne({ email: cleanEmail });
 
-        // Security: email burtgeltei esehiig il gargahgui
         if (!user) {
             return res.json({
                 message:
@@ -285,7 +294,7 @@ router.post("/forgot-password", async (req, res) => {
         }
 
         const resetToken = crypto.randomBytes(32).toString("hex");
-        const resetExpires = new Date(Date.now() + 1000 * 60 * 30); // 30 min
+        const resetExpires = new Date(Date.now() + 1000 * 60 * 30);
 
         user.resetPasswordToken = resetToken;
         user.resetPasswordExpires = resetExpires;
@@ -293,41 +302,40 @@ router.post("/forgot-password", async (req, res) => {
 
         const resetLink = `${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/reset-password/${resetToken}`;
 
-        const transporter = nodemailer.createTransport({
-            host: "smtp.gmail.com",
-            port: 587,
-            secure: false,
-            requireTLS: true,
-            auth: {
-                user: process.env.MAIL_USER,
-                pass: process.env.MAIL_PASS,
-            },
-            family: 4,
-            connectionTimeout: 10000,
-            greetingTimeout: 10000,
-            socketTimeout: 15000,
-        });
+        const transporter = createMailTransporter();
 
-        await transporter.sendMail({
-            from: process.env.MAIL_USER,
-            to: cleanEmail,
-            subject: "Нууц үг сэргээх хүсэлт",
-            html: `
-                <h2>Нууц үг сэргээх</h2>
-                <p>Доорх холбоосоор орж шинэ нууц үгээ тохируулна уу:</p>
-                <a href="${resetLink}">${resetLink}</a>
-                <p>Энэ холбоос 30 минутын хугацаанд хүчинтэй.</p>
-                <p>Хэрвээ та энэ хүсэлтийг гаргаагүй бол энэ имэйлийг үл тооно уу.</p>
-            `,
-        });
+        try {
+            const info = await transporter.sendMail({
+                from: process.env.MAIL_USER,
+                to: cleanEmail,
+                subject: "Нууц үг сэргээх хүсэлт",
+                html: `
+                    <h2>Нууц үг сэргээх</h2>
+                    <p>Доорх холбоосоор орж шинэ нууц үгээ тохируулна уу:</p>
+                    <a href="${resetLink}">${resetLink}</a>
+                    <p>Энэ холбоос 30 минутын хугацаанд хүчинтэй.</p>
+                    <p>Хэрвээ та энэ хүсэлтийг гаргаагүй бол энэ имэйлийг үл тооно уу.</p>
+                `,
+            });
 
-        res.json({
+            console.log("FORGOT PASSWORD SENDMAIL SUCCESS:", info.messageId);
+        } catch (mailError) {
+            console.error("FORGOT PASSWORD SENDMAIL ERROR:", mailError);
+            return res.status(500).json({
+                message: "Нууц үг сэргээх имэйл илгээж чадсангүй",
+                error: mailError.message,
+            });
+        }
+
+        return res.json({
             message:
                 "Хэрвээ энэ и-мэйл бүртгэлтэй бол нууц үг сэргээх холбоос илгээгдлээ",
         });
     } catch (error) {
         console.error("FORGOT PASSWORD ERROR:", error);
-        res.status(500).json({ message: "Нууц үг сэргээх хүсэлт боловсруулахад алдаа гарлаа" });
+        return res.status(500).json({
+            message: "Нууц үг сэргээх хүсэлт боловсруулахад алдаа гарлаа",
+        });
     }
 });
 
@@ -362,15 +370,14 @@ router.post("/reset-password/:token", async (req, res) => {
 
         await user.save();
 
-        res.json({
+        return res.json({
             message: "Нууц үг амжилттай шинэчлэгдлээ",
         });
     } catch (error) {
         console.error("RESET PASSWORD ERROR:", error);
-        res.status(500).json({ message: "Нууц үг шинэчлэхэд алдаа гарлаа" });
+        return res.status(500).json({ message: "Нууц үг шинэчлэхэд алдаа гарлаа" });
     }
 });
-
 
 // ================= UPGRADE PACKAGE =================
 router.post("/upgrade", authMiddleware, async (req, res) => {
@@ -413,28 +420,27 @@ router.post("/upgrade", authMiddleware, async (req, res) => {
 
         await user.save();
 
-        res.json({
+        return res.json({
             message: `${packageType} багц амжилттай идэвхжлээ`,
             expiresAt: expires,
         });
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        return res.status(500).json({ message: error.message });
     }
 });
 
 router.get("/profile", authMiddleware, (req, res) => {
-    res.json({
+    return res.json({
         message: "Protected",
         user: req.user,
     });
 });
 
-
 // ================= Verification =================
 router.get("/verify/:token", async (req, res) => {
     try {
         const user = await User.findOne({
-            verificationToken: req.params.token
+            verificationToken: req.params.token,
         });
 
         if (!user) {
@@ -448,17 +454,16 @@ router.get("/verify/:token", async (req, res) => {
 
         console.log("VERIFIED USER:", user.email);
 
-        res.send("Email verified successfully");
+        return res.send("Email verified successfully");
     } catch (error) {
         console.log("VERIFY ERROR:", error);
-        res.status(500).send("Verification failed");
+        return res.status(500).send("Verification failed");
     }
 });
 
-
 // ================= TEST =================
 router.get("/test", (req, res) => {
-    res.json({ message: "Auth route working" });
+    return res.json({ message: "Auth route working" });
 });
 
 // ================= GET CURRENT USER =================
@@ -472,14 +477,11 @@ router.get("/me", authMiddleware, async (req, res) => {
 
         user = await checkAndDowngradePackage(user);
 
-        res.json(user);
+        return res.json(user);
     } catch (error) {
         console.error("GET ME ERROR:", error);
-        res.status(500).json({ message: error.message });
+        return res.status(500).json({ message: error.message });
     }
 });
-
-
-
 
 module.exports = router;
