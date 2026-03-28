@@ -66,11 +66,16 @@ router.post("/register", async (req, res) => {
             });
         }
 
-        const existingUser = await User.findOne({ email: normalizedEmail });
+        const existingUser = await User.findOne({
+            $or: [
+                { email: normalizedEmail },
+                { phone: phone.trim() },
+            ],
+        });
 
         if (existingUser) {
             return res.status(400).json({
-                message: "Ийм хэрэглэгч бүртгэлтэй байна",
+                message: "Ийм и-мэйл эсвэл утасны дугаартай хэрэглэгч бүртгэлтэй байна",
             });
         }
 
@@ -85,18 +90,7 @@ router.post("/register", async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, 10);
         const verificationToken = crypto.randomBytes(32).toString("hex");
 
-        const newUser = await User.create({
-            email: normalizedEmail,
-            phone: phone.trim(),
-            password: hashedPassword,
-            role: normalizedRole,
-            storeName: normalizedRole === "seller" ? storeName.trim() : "",
-            categories: normalizedRole === "seller" ? normalizedCategories : [],
-            location: normalizedRole === "seller" ? location.trim() : "",
-            verificationToken,
-        });
 
-        console.log("REGISTERED USER:", newUser.email);
 
         const transporter = nodemailer.createTransport({
             service: "gmail",
@@ -167,6 +161,18 @@ router.post("/register", async (req, res) => {
             });
 
             console.log("SENDMAIL SUCCESS:", info.messageId);
+            const newUser = await User.create({
+                email: normalizedEmail,
+                phone: phone.trim(),
+                password: hashedPassword,
+                role: normalizedRole,
+                storeName: normalizedRole === "seller" ? storeName.trim() : "",
+                categories: normalizedRole === "seller" ? normalizedCategories : [],
+                location: normalizedRole === "seller" ? location.trim() : "",
+                verificationToken,
+            });
+
+            console.log("REGISTERED USER:", newUser.email);
         } catch (mailError) {
             console.error("SENDMAIL ERROR:", mailError);
 
@@ -192,19 +198,19 @@ router.post("/register", async (req, res) => {
 // ================= LOGIN =================
 router.post("/login", async (req, res) => {
     try {
-        const { email, password } = req.body;
+        const { phone, password } = req.body;
 
-        const cleanEmail = email?.toLowerCase().trim();
+        const cleanPhone = phone?.trim();
 
-        if (!cleanEmail || !password) {
+        if (!cleanPhone || !password) {
             return res.status(400).json({
-                message: "И-мэйл болон нууц үгээ оруулна уу",
+                message: "Утасны дугаар болон нууц үгээ оруулна уу",
             });
         }
 
-        const user = await User.findOne({ email: cleanEmail });
+        const user = await User.findOne({ phone: cleanPhone });
 
-        console.log("LOGIN EMAIL:", cleanEmail);
+        console.log("LOGIN PHONE:", cleanPhone);
         console.log("FOUND USER:", user);
 
         if (!user) {

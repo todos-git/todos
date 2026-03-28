@@ -322,6 +322,8 @@ export default function RegisterPage() {
                             <input
                                 type="text"
                                 placeholder="Утасны дугаар"
+                                maxLength={8}
+                                inputMode="numeric"
                                 className="w-full rounded-2xl border border-slate-300 px-4 py-3 outline-none transition focus:border-slate-500"
                                 value={phone}
                                 onChange={(e) => setPhone(e.target.value)}
