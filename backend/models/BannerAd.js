@@ -90,6 +90,11 @@ const bannerAdSchema = new mongoose.Schema(
             default: false,
         },
 
+        isAdminBanner: {
+            type: Boolean,
+            default: false,
+        },
+
         // QPay / payment data
         qpayInvoiceId: {
             type: String,

@@ -18,7 +18,15 @@ const paymentSchema = new mongoose.Schema(
 
         status: {
             type: String,
-            enum: ["pending", "pending_approval", "approved", "failed", "cancelled"],
+            enum: [
+                "pending",
+                "pending_approval",
+                "screenshot_requested",
+                "screenshot_uploaded",
+                "approved",
+                "failed",
+                "cancelled",
+            ],
             default: "pending",
         },
 
@@ -31,6 +39,25 @@ const paymentSchema = new mongoose.Schema(
         qpayDeepLink: String,
 
         paidAt: Date,
+        screenshotImage: {
+            type: String,
+            default: "",
+        },
+
+        cancelReason: {
+            type: String,
+            default: "",
+        },
+
+        cancelledAt: {
+            type: Date,
+            default: null,
+        },
+
+        approvedAt: {
+            type: Date,
+            default: null,
+        },
     },
     { timestamps: true }
 );

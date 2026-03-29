@@ -41,10 +41,20 @@ interface RatingSummary {
     }[];
 }
 
+interface LatestPayment {
+    _id: string;
+    packageType: "basic" | "pro" | "premium";
+    amount: number;
+    status: "pending" | "pending_approval" | "approved" | "failed" | "cancelled";
+    paidAt?: string;
+    createdAt?: string;
+}
+
 export default function SellerDashboardPage() {
     const [user, setUser] = useState<SellerMe | null>(null);
     const [products, setProducts] = useState<Product[]>([]);
     const [orders, setOrders] = useState<Order[]>([]);
+    const [latestPayment, setLatestPayment] = useState<LatestPayment | null>(null);
     const [ratingSummary, setRatingSummary] = useState<RatingSummary>({
         averageRating: 0,
         reviewCount: 0,
@@ -65,7 +75,8 @@ export default function SellerDashboardPage() {
             try {
                 const token = localStorage.getItem("token");
 
-                const [userRes, productsRes, ordersRes, ratingRes] = await Promise.all([
+
+                const [userRes, productsRes, ordersRes, ratingRes, latestPaymentRes] = await Promise.all([
                     fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/me`, {
                         headers: {
                             Authorization: `Bearer ${token}`,
@@ -90,12 +101,20 @@ export default function SellerDashboardPage() {
                         },
                         cache: "no-store",
                     }),
+                    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/payments/my/latest`, {
+                        headers: {
+                            Authorization: `Bearer ${token}`,
+                        },
+                        cache: "no-store",
+                    }),
+
                 ]);
 
                 const userData = await userRes.json();
                 const productsData = await productsRes.json();
                 const ordersData = await ordersRes.json();
                 const ratingData = await ratingRes.json();
+                const latestPaymentData = await latestPaymentRes.json();
 
                 if (!userRes.ok) {
                     throw new Error(userData.message || "Худалдагчийн мэдээлэл авахад алдаа гарлаа");
@@ -116,6 +135,7 @@ export default function SellerDashboardPage() {
                 setUser(userData);
                 setProducts(Array.isArray(productsData) ? productsData : []);
                 setOrders(Array.isArray(ordersData) ? ordersData : []);
+                setLatestPayment(latestPaymentRes.ok ? latestPaymentData : null);
                 setRatingSummary(
                     ratingData || {
                         averageRating: 0,
@@ -346,6 +366,24 @@ export default function SellerDashboardPage() {
                 <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                     <p className="text-sm text-slate-500">Одоогийн багц</p>
                     <p className="mt-2 text-2xl font-bold text-slate-900">{packageLabel}</p>
+
+                    {latestPayment?.status === "pending_approval" && (
+                        <div className="mt-3 rounded-xl bg-orange-50 px-3 py-2 text-sm font-medium text-orange-700">
+                            Төлбөр шалгаж байна
+                        </div>
+                    )}
+
+                    {latestPayment?.status === "approved" && (
+                        <div className="mt-3 rounded-xl bg-green-50 px-3 py-2 text-sm font-medium text-green-700">
+                            Сүүлчийн төлбөр баталгаажсан
+                        </div>
+                    )}
+
+                    {latestPayment?.status === "pending" && (
+                        <div className="mt-3 rounded-xl bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700">
+                            Төлбөр үргэлжилж байна
+                        </div>
+                    )}
                 </div>
 
                 <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">

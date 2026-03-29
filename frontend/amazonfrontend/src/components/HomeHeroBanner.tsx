@@ -2,7 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 
 type BannerAd = {
     _id: string;
@@ -15,23 +16,20 @@ type BannerAd = {
     storeNameSnapshot?: string;
     locationSnapshot?: string;
     packageTypeSnapshot?: "free" | "basic" | "pro" | "premium";
+    isAdminBanner?: boolean;
 };
 
 export default function HomeHeroBanner() {
+    const router = useRouter();
+
     const [banners, setBanners] = useState<BannerAd[]>([]);
     const [current, setCurrent] = useState(0);
     const [loading, setLoading] = useState(true);
     const [showBannerPrompt, setShowBannerPrompt] = useState(false);
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const [role, setRole] = useState<string | null>(null);
 
     const activeBanner = banners[current];
-
-    const getImageSrc = (src?: string) => {
-        if (!src) return "/no-image.png";
-
-        return src.startsWith("http")
-            ? src
-            : `${process.env.NEXT_PUBLIC_API_URL}${src.startsWith("/") ? src : `/${src}`}`;
-    };
 
     useEffect(() => {
         const fetchBanners = async () => {
@@ -53,6 +51,16 @@ export default function HomeHeroBanner() {
     }, []);
 
     useEffect(() => {
+        if (typeof window === "undefined") return;
+
+        const token = localStorage.getItem("token");
+        const savedRole = localStorage.getItem("role");
+
+        setIsLoggedIn(!!token);
+        setRole(savedRole);
+    }, []);
+
+    useEffect(() => {
         if (banners.length <= 1) return;
 
         const interval = setInterval(() => {
@@ -62,11 +70,36 @@ export default function HomeHeroBanner() {
         return () => clearInterval(interval);
     }, [banners]);
 
+    const isBannerPlacementLink = useMemo(() => {
+        return activeBanner?.targetLink === "/seller/banner-ads/create";
+    }, [activeBanner?.targetLink]);
+
+    const canGoDirectToBannerCreate = isLoggedIn && (role === "seller" || role === "admin" || role === "superadmin");
+
+    const handleBannerPlacement = () => {
+        if (canGoDirectToBannerCreate) {
+            router.push("/seller/banner-ads/create");
+            return;
+        }
+
+        setShowBannerPrompt(true);
+    };
+
+    const getImageSrc = (src?: string) => {
+        if (!src) return "/no-image.png";
+
+        if (src.startsWith("http://") || src.startsWith("https://")) {
+            return src;
+        }
+
+        return `${process.env.NEXT_PUBLIC_API_URL}${src.startsWith("/") ? src : `/${src}`}`;
+    };
+
     if (loading) {
         return (
             <section className="relative w-full bg-transparent">
                 <div className="mx-auto max-w-7xl px-3 pt-3 sm:px-4 md:px-6 md:pt-5">
-                    <div className="h-[320px] rounded-[32px] bg-slate-100 animate-pulse md:h-[420px]" />
+                    <div className="h-[320px] animate-pulse rounded-[32px] bg-slate-100 md:h-[420px]" />
                 </div>
             </section>
         );
@@ -85,28 +118,21 @@ export default function HomeHeroBanner() {
                                 </div>
 
                                 <h1 className="mt-5 text-3xl font-black leading-[0.94] tracking-[-0.03em] text-slate-900 sm:text-4xl md:text-5xl lg:text-[58px]">
-                                    Discover top featured products
+                                    Та энд бараа бүтээгдэхүүн сурталчлах боломжтой
                                 </h1>
 
                                 <p className="mt-4 max-w-md text-sm leading-6 text-slate-700 sm:text-base md:text-lg">
-                                    Promote your store with premium homepage banner placement and reach more buyers.
+                                    Өөрийн дэлгүүрээ илүү олон хүнд хүргээрэй.
                                 </p>
 
-                                <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+                                <div className="mt-7">
                                     <button
                                         type="button"
-                                        onClick={() => setShowBannerPrompt(true)}
-                                        className="inline-flex min-w-[190px] items-center justify-center rounded-2xl border border-slate-300 bg-white/85 px-6 py-3.5 text-base font-semibold text-slate-800 backdrop-blur transition hover:bg-white"
+                                        onClick={handleBannerPlacement}
+                                        className="inline-flex min-w-[190px] items-center justify-center rounded-2xl bg-slate-900 px-6 py-3.5 text-base font-semibold text-white transition hover:bg-slate-800"
                                     >
                                         Баннер байршуулах
                                     </button>
-
-                                    <Link
-                                        href="/seller/packages"
-                                        className="inline-flex min-w-[170px] items-center justify-center rounded-2xl bg-slate-900 px-6 py-3.5 text-base font-bold text-white transition hover:bg-slate-800"
-                                    >
-                                        Upgrade Package
-                                    </Link>
                                 </div>
                             </div>
                         </div>
@@ -151,16 +177,18 @@ export default function HomeHeroBanner() {
                                 </p>
 
                                 <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-                                    <Link
-                                        href={activeBanner.targetLink || "/"}
-                                        className="inline-flex min-w-[170px] items-center justify-center rounded-2xl bg-slate-900 px-6 py-3.5 text-base font-bold text-white transition hover:bg-slate-800"
-                                    >
-                                        {activeBanner.targetType === "store" ? "Дэлгүүр үзэх" : "Бараа үзэх"}
-                                    </Link>
+                                    {!isBannerPlacementLink && (
+                                        <Link
+                                            href={activeBanner.targetLink || "/"}
+                                            className="inline-flex min-w-[170px] items-center justify-center rounded-2xl bg-slate-900 px-6 py-3.5 text-base font-bold text-white transition hover:bg-slate-800"
+                                        >
+                                            {activeBanner.targetType === "store" ? "Дэлгүүр үзэх" : "Бараа үзэх"}
+                                        </Link>
+                                    )}
 
                                     <button
                                         type="button"
-                                        onClick={() => setShowBannerPrompt(true)}
+                                        onClick={handleBannerPlacement}
                                         className="inline-flex min-w-[190px] items-center justify-center rounded-2xl border border-slate-300 bg-white/85 px-6 py-3.5 text-base font-semibold text-slate-800 backdrop-blur transition hover:bg-white"
                                     >
                                         Баннер байршуулах
@@ -197,7 +225,7 @@ export default function HomeHeroBanner() {
 
                         <div className="mt-6 flex flex-col gap-3 sm:flex-row">
                             <Link
-                                href="/login"
+                                href="/login?redirect=/seller/banner-ads/create"
                                 className="inline-flex flex-1 items-center justify-center rounded-2xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
                             >
                                 Нэвтрэх

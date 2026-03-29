@@ -62,6 +62,7 @@ function NavbarContent() {
     const [showFilterRow, setShowFilterRow] = useState(true);
     const [sellerOrderCount, setSellerOrderCount] = useState(0);
     const [buyerOrderCount, setBuyerOrderCount] = useState(0);
+    const [adminPendingCount, setAdminPendingCount] = useState(0);
 
 
     const isBuyer = isLoggedIn && role === "user";
@@ -177,7 +178,44 @@ function NavbarContent() {
 
         fetchOrderCounts();
 
+
+
         const interval = setInterval(fetchOrderCounts, 5000);
+
+        return () => clearInterval(interval);
+    }, [pathname, isLoggedIn, role]);
+
+    useEffect(() => {
+        const fetchAdminPendingCount = async () => {
+            try {
+                const token = localStorage.getItem("token");
+                const savedRole = localStorage.getItem("role");
+
+                if (!token || (savedRole !== "admin" && savedRole !== "superadmin")) {
+                    setAdminPendingCount(0);
+                    return;
+                }
+
+                const res = await fetch(
+                    `${process.env.NEXT_PUBLIC_API_URL}/api/payments/admin/pending-count`,
+                    {
+                        headers: {
+                            Authorization: `Bearer ${token}`,
+                        },
+                        cache: "no-store",
+                    }
+                );
+
+                const data = await res.json();
+                setAdminPendingCount(res.ok ? data.count || 0 : 0);
+            } catch (error) {
+                console.error("ADMIN PENDING COUNT ERROR:", error);
+                setAdminPendingCount(0);
+            }
+        };
+
+        fetchAdminPendingCount();
+        const interval = setInterval(fetchAdminPendingCount, 5000);
 
         return () => clearInterval(interval);
     }, [pathname, isLoggedIn, role]);
@@ -440,9 +478,14 @@ function NavbarContent() {
                                 {isLoggedIn && (role === "admin" || role === "superadmin") && (
                                     <button
                                         onClick={() => router.push("/admin/payments")}
-                                        className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-800 transition hover:bg-slate-50"
+                                        className="relative rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-800 transition hover:bg-slate-50"
                                     >
                                         Админ самбар
+                                        {adminPendingCount > 0 && (
+                                            <span className="absolute -right-2 -top-2 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1 text-[11px] font-bold text-white">
+                                                {adminPendingCount}
+                                            </span>
+                                        )}
                                     </button>
                                 )}
 

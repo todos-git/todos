@@ -40,6 +40,8 @@ type TopSellerItem = {
   topProduct?: Product;
 };
 
+
+
 function HomePageContent() {
   const searchParams = useSearchParams();
 
@@ -85,6 +87,8 @@ function HomePageContent() {
 
     fetchProducts();
   }, [search, filter]);
+
+
 
   const featuredProducts = useMemo(() => {
     const premium = products.filter(
@@ -254,6 +258,8 @@ function HomePageContent() {
     }
   }
 
+
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50 px-6 text-center text-lg text-slate-600">
@@ -269,6 +275,8 @@ function HomePageContent() {
           <HomeHeroBanner />
         </section>
       )}
+
+
 
       {!isFiltering && (
         <section className="mx-auto max-w-[1600px] px-4 pt-8 md:px-6 md:pt-10">
