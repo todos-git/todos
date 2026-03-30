@@ -45,22 +45,34 @@ interface LatestPayment {
     _id: string;
     packageType: "basic" | "pro" | "premium";
     amount: number;
-    status: "pending" | "pending_approval" | "approved" | "failed" | "cancelled";
+    status:
+    | "pending"
+    | "pending_approval"
+    | "screenshot_requested"
+    | "screenshot_uploaded"
+    | "approved"
+    | "failed"
+    | "cancelled";
     paidAt?: string;
     createdAt?: string;
+    screenshotImage?: string;
 }
+
+
 
 export default function SellerDashboardPage() {
     const [user, setUser] = useState<SellerMe | null>(null);
     const [products, setProducts] = useState<Product[]>([]);
     const [orders, setOrders] = useState<Order[]>([]);
-    const [latestPayment, setLatestPayment] = useState<LatestPayment | null>(null);
     const [ratingSummary, setRatingSummary] = useState<RatingSummary>({
         averageRating: 0,
         reviewCount: 0,
         latestReviews: [],
     });
     const [loading, setLoading] = useState(true);
+    const [latestPayment, setLatestPayment] = useState<LatestPayment | null>(null);
+    const [paymentScreenshot, setPaymentScreenshot] = useState<File | null>(null);
+    const [uploadingScreenshot, setUploadingScreenshot] = useState(false);
 
     const getImageSrc = (src?: string) => {
         if (!src) return "/no-image.png";
@@ -107,6 +119,14 @@ export default function SellerDashboardPage() {
                         },
                         cache: "no-store",
                     }),
+                    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/payments/my/latest`, {
+                        headers: {
+                            Authorization: `Bearer ${token}`,
+                        },
+                        cache: "no-store",
+                    }),
+
+
 
                 ]);
 
@@ -152,6 +172,52 @@ export default function SellerDashboardPage() {
 
         fetchDashboard();
     }, []);
+
+    const handleUploadPaymentScreenshot = async () => {
+        if (!latestPayment?._id) {
+            alert("Төлбөрийн мэдээлэл олдсонгүй");
+            return;
+        }
+
+        if (!paymentScreenshot) {
+            alert("Зургаа сонгоно уу");
+            return;
+        }
+
+        try {
+            setUploadingScreenshot(true);
+
+            const token = localStorage.getItem("token");
+            const formData = new FormData();
+            formData.append("screenshot", paymentScreenshot);
+
+            const res = await fetch(
+                `${process.env.NEXT_PUBLIC_API_URL}/api/payments/${latestPayment._id}/upload-screenshot`,
+                {
+                    method: "POST",
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                    body: formData,
+                }
+            );
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                throw new Error(data.message || "Screenshot upload хийж чадсангүй");
+            }
+
+            alert("Төлбөрийн зураг амжилттай илгээгдлээ");
+            setPaymentScreenshot(null);
+            setLatestPayment(data.payment || latestPayment);
+        } catch (error) {
+            console.error("UPLOAD PAYMENT SCREENSHOT ERROR:", error);
+            alert(error instanceof Error ? error.message : "Алдаа гарлаа");
+        } finally {
+            setUploadingScreenshot(false);
+        }
+    };
 
     const usedProducts = products.length;
     const limit = user?.productLimit || 0;
@@ -382,6 +448,36 @@ export default function SellerDashboardPage() {
                     {latestPayment?.status === "pending" && (
                         <div className="mt-3 rounded-xl bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700">
                             Төлбөр үргэлжилж байна
+                        </div>
+                    )}
+
+                    {latestPayment?.status === "screenshot_uploaded" && (
+                        <div className="mt-3 rounded-xl bg-blue-50 px-3 py-2 text-sm font-medium text-blue-700">
+                            Таны зураг илгээгдсэн. Админ шалгаж байна.
+                        </div>
+                    )}
+
+                    {latestPayment?.status === "screenshot_requested" && (
+                        <div className="mt-4 space-y-3 rounded-2xl border border-red-200 bg-red-50 p-4">
+                            <p className="text-sm font-semibold text-red-700">
+                                Та төлбөрийн зургаа илгээж баталгаажуулна уу!
+                            </p>
+
+                            <input
+                                type="file"
+                                accept="image/*"
+                                onChange={(e) => setPaymentScreenshot(e.target.files?.[0] || null)}
+                                className="w-full rounded-xl border border-red-200 bg-white px-3 py-2 text-sm"
+                            />
+
+                            <button
+                                type="button"
+                                onClick={handleUploadPaymentScreenshot}
+                                disabled={uploadingScreenshot}
+                                className="w-full rounded-xl bg-slate-900 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-50"
+                            >
+                                {uploadingScreenshot ? "Илгээж байна..." : "Зураг илгээх"}
+                            </button>
                         </div>
                     )}
                 </div>
