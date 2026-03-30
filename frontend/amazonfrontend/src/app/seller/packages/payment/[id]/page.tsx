@@ -97,15 +97,35 @@ export default function SellerPackagePaymentPage() {
     const packageDisplay = useMemo(() => {
         switch (payment?.packageType) {
             case "basic":
-                return { label: "Basic", oldPrice: 39000, newPrice: 19000, color: "text-blue-600" };
+                return {
+                    label: "Basic",
+                    oldPrice: 39000,
+                    promoPrice: 19000,
+                    color: "text-blue-600",
+                };
             case "pro":
-                return { label: "Pro", oldPrice: 59000, newPrice: 39000, color: "text-green-600" };
+                return {
+                    label: "Pro",
+                    oldPrice: 59000,
+                    promoPrice: 39000,
+                    color: "text-green-600",
+                };
             case "premium":
-                return { label: "Premium", oldPrice: 89000, newPrice: 59000, color: "text-yellow-600" };
+                return {
+                    label: "Premium",
+                    oldPrice: 89000,
+                    promoPrice: 59000,
+                    color: "text-yellow-600",
+                };
             default:
-                return { label: "", oldPrice: 0, newPrice: 0, color: "text-slate-900" };
+                return {
+                    label: "",
+                    oldPrice: 0,
+                    promoPrice: 0,
+                    color: "text-slate-900",
+                };
         }
-    }, [payment]);
+    }, [payment?.packageType]);
 
     const handleConfirm = async () => {
         try {
@@ -189,9 +209,9 @@ export default function SellerPackagePaymentPage() {
                                 <p className="text-sm text-slate-400 line-through">
                                     ₮{packageDisplay.oldPrice.toLocaleString()}
                                 </p>
-                                <p className="text-xl font-black text-slate-900">
-                                    ₮{payment.amount.toLocaleString()}
-                                </p>
+                                <span className="text-4xl font-black text-slate-900">
+                                    ₮{packageDisplay.promoPrice.toLocaleString()}
+                                </span>
                             </div>
                         </div>
 
@@ -285,14 +305,12 @@ export default function SellerPackagePaymentPage() {
                         {packageDisplay.label} Package
                     </h2>
 
-                    <div className="mt-4 flex items-end gap-3">
-                        <span className="text-lg text-slate-400 line-through">
-                            ₮{packageDisplay.oldPrice.toLocaleString()}
-                        </span>
-                        <span className="text-4xl font-black text-slate-900">
-                            ₮{payment.amount.toLocaleString()}
-                        </span>
-                    </div>
+                    <p className="text-sm text-slate-400 line-through">
+                        ₮{packageDisplay.oldPrice.toLocaleString()}
+                    </p>
+                    <p className="text-xl font-black text-slate-900">
+                        ₮{packageDisplay.promoPrice.toLocaleString()}
+                    </p>
 
 
 
