@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { getCart, removeFromCart, updateCartQuantity } from "@/utils/cart";
 import { formatPrice } from "@/utils/format";
+import Image from "next/image";
 
 type CartItem = {
     _id: string;
@@ -15,6 +16,8 @@ type CartItem = {
     slug?: string;
     quantity: number;
     sellerId?: string;
+    selectedSize?: string;
+    purchaseMode?: "delivery" | "pickup";
 
     deliveryAvailable?: boolean;
     sameDayDelivery?: boolean;
@@ -61,14 +64,19 @@ export default function CartPage() {
         };
     }, []);
 
-    const handleRemove = (id: string) => {
-        removeFromCart(id);
+    const handleRemove = (item: CartItem) => {
+        removeFromCart(item._id, item.selectedSize, item.purchaseMode || "delivery");
         const updated = getCart();
         setCartItems(updated);
     };
 
     const handleIncrease = (item: CartItem) => {
-        updateCartQuantity(item._id, item.quantity + 1);
+        updateCartQuantity(
+            item._id,
+            item.quantity + 1,
+            item.selectedSize,
+            item.purchaseMode || "delivery"
+        );
         const updated = getCart();
         setCartItems(updated);
     };
@@ -158,17 +166,16 @@ export default function CartPage() {
                                     key={item._id}
                                     className="border rounded-xl p-4 flex flex-col md:flex-row gap-4"
                                 >
-                                    <div className="w-full md:w-40 h-40 bg-gray-100 rounded-lg overflow-hidden shrink-0">
+                                    <div className="relative w-full md:w-40 h-40 bg-gray-100 rounded-lg overflow-hidden shrink-0">
                                         {item.images?.[0] ? (
                                             <>
-                                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                                <img
-                                                    src={getImageSrc(item.images?.[0])
-                                                        ? item.images[0]
-                                                        : `${process.env.NEXT_PUBLIC_API_URL}${item.images[0].startsWith("/") ? item.images[0] : `/${item.images[0]}`}`
-                                                    }
+                                                <Image
+                                                    src={getImageSrc(item.images?.[0])}
                                                     alt={item.name}
-                                                    className="w-full h-full object-cover"
+                                                    fill
+                                                    sizes="160px"
+                                                    unoptimized
+                                                    className="object-cover"
                                                 />
                                             </>
                                         ) : (
@@ -195,6 +202,12 @@ export default function CartPage() {
                                         <p className="text-sm text-gray-500">
                                             Үлдэгдэл: {item.stock ?? 0}
                                         </p>
+
+                                        {item.selectedSize && (
+                                            <p className="text-sm text-slate-600">
+                                                Хэмжээ: <span className="font-medium">{item.selectedSize}</span>
+                                            </p>
+                                        )}
 
                                         <div className="mt-2 flex flex-wrap gap-2">
                                             {item.deliveryAvailable && (
@@ -246,7 +259,7 @@ export default function CartPage() {
 
                                         <div className="mt-4 flex gap-4 text-sm flex-wrap">
                                             <button
-                                                onClick={() => handleRemove(item._id)}
+                                                onClick={() => handleRemove(item)}
                                                 className="text-red-500 hover:underline"
                                             >
                                                 Устгах

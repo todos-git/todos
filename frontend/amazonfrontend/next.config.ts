@@ -13,6 +13,11 @@ const nextConfig = {
         hostname: "api.todos.mn",
         pathname: "/uploads/**",
       },
+      {
+        protocol: "https",
+        hostname: "res.cloudinary.com",
+        pathname: "/**",
+      },
     ],
   },
 };

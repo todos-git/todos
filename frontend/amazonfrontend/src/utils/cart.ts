@@ -9,6 +9,9 @@ export type CartItem = {
     quantity: number;
     sellerId?: string;
 
+    selectedSize?: string;
+    purchaseMode?: "delivery" | "pickup";
+
     deliveryAvailable?: boolean;
     sameDayDelivery?: boolean;
     deliveryCutoffTime?: string;
@@ -34,7 +37,12 @@ export const getCart = (): CartItem[] => {
 export const addToCart = (product: Omit<CartItem, "quantity">) => {
     const cart = getCart();
 
-    const existingItem = cart.find((item) => item._id === product._id);
+    const existingItem = cart.find(
+        (item) =>
+            item._id === product._id &&
+            (item.selectedSize || "") === (product.selectedSize || "") &&
+            (item.purchaseMode || "delivery") === (product.purchaseMode || "delivery")
+    );
 
     if (existingItem) {
         if (existingItem.stock && existingItem.quantity >= existingItem.stock) {
@@ -70,17 +78,37 @@ export const addToCart = (product: Omit<CartItem, "quantity">) => {
     emitCartUpdated();
 };
 
-export const removeFromCart = (productId: string) => {
-    const updatedCart = getCart().filter((item) => item._id !== productId);
+export const removeFromCart = (
+    productId: string,
+    selectedSize?: string,
+    purchaseMode: "delivery" | "pickup" = "delivery"
+) => {
+    const updatedCart = getCart().filter(
+        (item) =>
+            !(
+                item._id === productId &&
+                (item.selectedSize || "") === (selectedSize || "") &&
+                (item.purchaseMode || "delivery") === purchaseMode
+            )
+    );
     localStorage.setItem("cart", JSON.stringify(updatedCart));
     emitCartUpdated();
 };
 
-export const updateCartQuantity = (productId: string, newQuantity: number) => {
+export const updateCartQuantity = (
+    productId: string,
+    newQuantity: number,
+    selectedSize?: string,
+    purchaseMode: "delivery" | "pickup" = "delivery"
+) => {
     const cart = getCart();
 
     const updatedCart = cart.map((item) => {
-        if (item._id === productId) {
+        if (
+            item._id === productId &&
+            (item.selectedSize || "") === (selectedSize || "") &&
+            (item.purchaseMode || "delivery") === purchaseMode
+        ) {
             if (newQuantity < 1) {
                 return { ...item, quantity: 1 };
             }

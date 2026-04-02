@@ -57,6 +57,7 @@ export default function ProductDetailPage() {
     const [userRole, setUserRole] = useState<string | null>(null);
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [showLocation, setShowLocation] = useState(false);
+    const [selectedSize, setSelectedSize] = useState<string>("");
 
     useEffect(() => {
         if (typeof window !== "undefined") {
@@ -87,6 +88,7 @@ export default function ProductDetailPage() {
 
                 setProduct(data);
                 setSelectedImage(0);
+                setSelectedSize("");
             } catch (error) {
                 console.error("FETCH PRODUCT ERROR:", error);
                 setProduct(null);
@@ -122,6 +124,8 @@ export default function ProductDetailPage() {
     const isSellerLoggedIn = userRole === "seller";
     const isBuyerLoggedIn = isLoggedIn && userRole === "user";
     const isOutOfStock = (product?.stock || 0) <= 0;
+    const requiresSize = !!product?.sizes && product.sizes.length > 0;
+    const isSizeMissing = requiresSize && !selectedSize;
 
     const handleAddToCart = () => {
         if (!product) return;
@@ -141,6 +145,11 @@ export default function ProductDetailPage() {
             return;
         }
 
+        if (product.sizes && product.sizes.length > 0 && !selectedSize) {
+            alert("Хэмжээ сонгоно уу");
+            return;
+        }
+
         if (!product.deliveryAvailable) {
             alert("Энэ бараа хүргэлтгүй тул сагсанд хийх боломжгүй");
             return;
@@ -154,6 +163,8 @@ export default function ProductDetailPage() {
             stock: product.stock,
             storeName: seller?.storeName || "Seller Store",
             sellerId: seller?._id || "",
+            selectedSize: selectedSize || undefined,
+            purchaseMode: "delivery",
             deliveryAvailable: product.deliveryAvailable,
             sameDayDelivery: product.sameDayDelivery,
             deliveryCutoffTime: product.deliveryCutoffTime,
@@ -259,7 +270,6 @@ export default function ProductDetailPage() {
     return (
         <div className="max-w-7xl mx-auto px-4 py-8 md:py-10">
             <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
-                {/* LEFT: IMAGE GALLERY */}
                 <div className="xl:col-span-5 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
                     <div className="relative flex items-center justify-center rounded-2xl bg-slate-50 h-[360px] md:h-[460px] overflow-hidden">
                         <Image
@@ -298,7 +308,7 @@ export default function ProductDetailPage() {
                     )}
                 </div>
 
-                {/* MIDDLE: PRODUCT INFO + STORE DETAIL */}
+
                 <div className="xl:col-span-4 space-y-6">
                     <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                         <div className="flex items-start justify-between gap-4">
@@ -320,20 +330,33 @@ export default function ProductDetailPage() {
 
                             {product.sizes && product.sizes.length > 0 && (
                                 <div>
-                                    <p className="mb-2 font-medium text-slate-900">
-                                        Хэмжээ:
-                                    </p>
+                                    <p className="mb-2 font-medium text-slate-900">Хэмжээ:</p>
 
                                     <div className="flex flex-wrap gap-2">
-                                        {product.sizes.map((size) => (
-                                            <span
-                                                key={size}
-                                                className="rounded-lg border border-slate-300 bg-slate-50 px-3 py-1 text-sm font-medium text-slate-700"
-                                            >
-                                                {size}
-                                            </span>
-                                        ))}
+                                        {product.sizes.map((size) => {
+                                            const active = selectedSize === size;
+
+                                            return (
+                                                <button
+                                                    key={size}
+                                                    type="button"
+                                                    onClick={() => setSelectedSize(size)}
+                                                    className={`rounded-lg border px-3 py-1 text-sm font-medium transition ${active
+                                                        ? "border-slate-900 bg-slate-900 text-white"
+                                                        : "border-slate-300 bg-slate-50 text-slate-700 hover:border-slate-400"
+                                                        }`}
+                                                >
+                                                    {size}
+                                                </button>
+                                            );
+                                        })}
                                     </div>
+
+                                    {!selectedSize && (
+                                        <p className="mt-2 text-sm text-slate-500">
+                                            Хэмжээ сонгосны дараа сагслах эсвэл pickup хийх боломжтой.
+                                        </p>
+                                    )}
                                 </div>
                             )}
 
@@ -469,18 +492,25 @@ export default function ProductDetailPage() {
                             <div className="mt-6 space-y-3">
                                 {isBuyerLoggedIn ? (
                                     <>
+                                        {isSizeMissing && (
+                                            <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+                                                Та эхлээд хэмжээ сонгоно уу.
+                                            </div>
+                                        )}
                                         {/* CART BUTTON */}
                                         <button
                                             type="button"
                                             onClick={handleAddToCart}
-                                            disabled={isOutOfStock || !product.deliveryAvailable}
+                                            disabled={isOutOfStock || !product.deliveryAvailable || isSizeMissing}
                                             className="w-full rounded-2xl bg-slate-900 px-5 py-3.5 text-base font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
                                         >
                                             {isOutOfStock
                                                 ? "Бараа дууссан"
                                                 : !product.deliveryAvailable
                                                     ? "Хүргэлтгүй"
-                                                    : "Сагслах"}
+                                                    : isSizeMissing
+                                                        ? "Хэмжээ сонгоно уу"
+                                                        : "Сагслах"}
                                         </button>
 
                                         {/* PICKUP BUTTON */}
@@ -488,12 +518,14 @@ export default function ProductDetailPage() {
                                             <button
                                                 type="button"
                                                 onClick={handleAddToPickup}
-                                                disabled={isOutOfStock}
+                                                disabled={isOutOfStock || isSizeMissing}
                                                 className="w-full rounded-2xl border border-violet-300 bg-violet-50 px-5 py-3.5 text-base font-semibold text-violet-700 transition hover:bg-violet-100 disabled:cursor-not-allowed disabled:opacity-50"
                                             >
                                                 {isOutOfStock
                                                     ? "Pickup боломжгүй"
-                                                    : "📍 Pickup жагсаалтанд нэмэх"}
+                                                    : isSizeMissing
+                                                        ? "Хэмжээ сонгоно уу"
+                                                        : "📍 Pickup жагсаалтанд нэмэх"}
                                             </button>
                                         )}
                                     </>

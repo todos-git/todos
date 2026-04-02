@@ -8,6 +8,8 @@ export type PickupItem = {
     slug?: string;
     quantity: number;
     sellerId?: string;
+    selectedSize?: string;
+    purchaseMode?: "pickup";
     pickupAvailable?: boolean;
     pickupAddress?: string;
     pickupMapLink?: string;
@@ -29,7 +31,11 @@ export const getPickupItems = (): PickupItem[] => {
 export const addToPickup = (product: Omit<PickupItem, "quantity">) => {
     const pickupItems = getPickupItems();
 
-    const existingItem = pickupItems.find((item) => item._id === product._id);
+    const existingItem = pickupItems.find(
+        (item) =>
+            item._id === product._id &&
+            (item.selectedSize || "") === (product.selectedSize || "")
+    );
 
     if (existingItem) {
         if (existingItem.stock && existingItem.quantity >= existingItem.stock) {
@@ -58,17 +64,24 @@ export const addToPickup = (product: Omit<PickupItem, "quantity">) => {
     emitPickupUpdated();
 };
 
-export const removeFromPickup = (productId: string) => {
-    const updated = getPickupItems().filter((item) => item._id !== productId);
+export const removeFromPickup = (productId: string, selectedSize?: string) => {
+    const updated = getPickupItems().filter(
+        (item) =>
+            !(item._id === productId && (item.selectedSize || "") === (selectedSize || ""))
+    );
     localStorage.setItem("pickup", JSON.stringify(updated));
     emitPickupUpdated();
 };
 
-export const updatePickupQuantity = (productId: string, newQuantity: number) => {
+export const updatePickupQuantity = (
+    productId: string,
+    newQuantity: number,
+    selectedSize?: string
+) => {
     const pickupItems = getPickupItems();
 
     const updated = pickupItems.map((item) => {
-        if (item._id === productId) {
+        if (item._id === productId && (item.selectedSize || "") === (selectedSize || "")) {
             if (newQuantity < 1) {
                 return { ...item, quantity: 1 };
             }
