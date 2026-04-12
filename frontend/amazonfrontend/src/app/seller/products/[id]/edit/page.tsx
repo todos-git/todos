@@ -16,6 +16,34 @@ interface Product {
     pickupMapLink?: string;
 }
 
+const productCategories = [
+    "All",
+    "Хүүхдийн бараа",
+    "Эрэгтэй хувцас",
+    "Эмэгтэй хувцас",
+    "Пүүз",
+    "Гутал",
+    "Цүнх",
+    "Малгай",
+    "Дотуур хувцас",
+    "Спорт хувцас",
+    "Аксессуар",
+    "Гоо сайхан",
+    "Арьс арчилгаа",
+    "Үс арчилгаа",
+    "Эрүүл мэнд",
+    "Гэр ахуй",
+    "Гал тогоо",
+    "Цахилгаан бараа",
+    "Гар утас, дагалдах хэрэгсэл",
+    "Авто бараа",
+    "Аялал",
+    "Оффис, бичиг хэрэг",
+    "Хүнс",
+    "Амьтны хэрэгсэл",
+    "Бусад",
+];
+
 export default function EditProduct() {
     const router = useRouter();
     const params = useParams();
@@ -25,7 +53,7 @@ export default function EditProduct() {
     const [price, setPrice] = useState<number | string>("");
     const [stock, setStock] = useState<number | string>("");
     const [description, setDescription] = useState("");
-    const [category, setCategory] = useState("All");
+    const [category, setCategory] = useState("");
 
     const [deliveryAvailable, setDeliveryAvailable] = useState(false);
     const [pickupAvailable, setPickupAvailable] = useState(false);
@@ -271,23 +299,20 @@ export default function EditProduct() {
                                 </div>
 
                                 <div className="md:col-span-2">
-                                    <label className="mb-2 block text-sm font-medium text-slate-700">
+                                    <label className="mb-2 block text-sm font-medium text-gray-700">
                                         Ангилал
                                     </label>
                                     <select
+                                        name="category"
                                         value={category}
                                         onChange={(e) => setCategory(e.target.value)}
-                                        className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-blue-500"
+                                        className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 outline-none"
                                     >
-                                        <option value="All">Бүгд</option>
-                                        <option value="Baby">Хүүхдийн бараа</option>
-                                        <option value="Men">Эрэгтэй</option>
-                                        <option value="Women">Эмэгтэй</option>
-                                        <option value="Beauty & Personal care">Гоо сайхан, арчилгаа</option>
-                                        <option value="Health">Эрүүл мэнд</option>
-                                        <option value="Home & Kitchen">Гэр ахуй, гал тогоо</option>
-                                        <option value="Sports">Спорт</option>
-                                        <option value="Travel">Аялал</option>
+                                        {productCategories.map((item) => (
+                                            <option key={item} value={item}>
+                                                {item === "All" ? "Бүгд" : item}
+                                            </option>
+                                        ))}
                                     </select>
                                 </div>
 
