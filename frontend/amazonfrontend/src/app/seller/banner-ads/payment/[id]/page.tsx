@@ -12,7 +12,7 @@ type BannerAd = {
     targetType: "store" | "product";
     durationDays: 7 | 14 | 21;
     amount: number;
-    status: "draft" | "pending_payment" | "paid" | "active" | "expired" | "rejected";
+    status: "draft" | "pending_payment" | "pending_approval" | "active" | "expired" | "rejected" | "cancelled";
     storeNameSnapshot?: string;
     locationSnapshot?: string;
     packageTypeSnapshot?: "free" | "basic" | "pro" | "premium";
@@ -27,7 +27,6 @@ export default function BannerAdPaymentPage() {
     const [ad, setAd] = useState<BannerAd | null>(null);
     const [loading, setLoading] = useState(true);
     const [confirming, setConfirming] = useState(false);
-    const [deeplink, setDeeplink] = useState("");
 
     const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") || "";
 
@@ -77,31 +76,6 @@ export default function BannerAdPaymentPage() {
         if (id) {
             fetchAd();
         }
-    }, [id]);
-
-    useEffect(() => {
-        const fetchQpay = async () => {
-            try {
-                const token = localStorage.getItem("token");
-
-                const res = await fetch(
-                    `${process.env.NEXT_PUBLIC_API_URL}/api/banner-ads/${id}/qpay-create`,
-                    {
-                        method: "POST",
-                        headers: {
-                            Authorization: `Bearer ${token}`,
-                        },
-                    }
-                );
-
-                const data = await res.json();
-                setDeeplink(data.deeplink || "");
-            } catch (err) {
-                console.error("QPAY ERROR:", err);
-            }
-        };
-
-        if (id) fetchQpay();
     }, [id]);
 
     const packageBadge = useMemo(() => {
@@ -164,8 +138,8 @@ export default function BannerAdPaymentPage() {
                 throw new Error(data.message || "Payment batalgaajuulj chadsangui");
             }
 
-            alert("Banner ad active bolлоо");
-            router.push("/seller");
+            alert("Төлбөр шалгах хүлээгдэж байна. Админ баталгаажуулсны дараа баннер идэвхжинэ.");
+            router.push("/seller/banner-ads");
         } catch (error) {
             console.error("CONFIRM BANNER PAYMENT ERROR:", error);
             alert("Payment batalgaajuulj chadsangui");
@@ -229,9 +203,9 @@ export default function BannerAdPaymentPage() {
         <div className="mx-auto grid max-w-7xl grid-cols-1 gap-8 p-4 md:p-8 xl:grid-cols-2">
             <div className="space-y-6 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
                 <div>
-                    <h1 className="text-2xl font-bold md:text-3xl">Banner Ad Payment</h1>
+                    <h1 className="text-2xl font-bold md:text-3xl">Баннер төлбөрийн хэсэг</h1>
                     <p className="mt-2 text-gray-500">
-                        Review your banner ad and continue with payment.
+                        Баннер зараа шалгаад төлбөрөө үргэлжлүүлээрэй.
                     </p>
                 </div>
 
@@ -264,36 +238,39 @@ export default function BannerAdPaymentPage() {
                 </div>
 
                 <div className="space-y-4 rounded-2xl border border-slate-200 p-5 text-center">
-                    <h2 className="text-xl font-bold">Scan QR to Pay</h2>
+                    <h2 className="text-xl font-bold">QR уншуулж төлбөрөө төлнө үү. </h2>
 
-                    <div className="mx-auto flex h-56 w-56 items-center justify-center rounded-2xl border bg-gray-100 text-gray-500">
-                        QR CODE ENDUUR ORNO
+                    <div className="mx-auto h-56 w-56 overflow-hidden rounded-2xl border bg-white p-2">
+                        <div className="relative h-full w-full">
+                            <Image
+                                src="/qr/tdb-qr.jpg"
+                                alt="QR"
+                                fill
+                                unoptimized
+                                className="object-contain"
+                            />
+                        </div>
                     </div>
 
                     <p className="text-sm text-gray-500">
-                        Odoogoor demo payment flow. Daraa ni bank app deeplink / QPay holboj bolno.
+                        Гүйлгээний утга дээр бүртгэлтэй Gmail-ээ бичиж “Би төлсөн” дарсны дараа админ шалгаж баталгаажуулна.
                     </p>
-
-                    <a
-                        href={deeplink || "#"}
-                        className="block w-full rounded-xl border py-3 text-center hover:bg-gray-50"
-                    >
-                        📱 Bank App нээх
-                    </a>
                 </div>
 
                 <button
                     type="button"
                     onClick={handleConfirmPayment}
-                    disabled={confirming || ad.status === "active"}
+                    disabled={confirming || ad.status === "active" || ad.status === "pending_approval"}
                     className={`w-full rounded-xl py-3 text-white ${confirming || ad.status === "active" ? "bg-gray-400" : "bg-black"
                         }`}
                 >
                     {ad.status === "active"
                         ? "Banner Already Active"
-                        : confirming
-                            ? "Confirming..."
-                            : "I Have Paid"}
+                        : ad.status === "pending_approval"
+                            ? "Админ шалгаж байна"
+                            : confirming
+                                ? "Confirming..."
+                                : "Би төлсөн"}
                 </button>
 
                 {ad.status !== "active" && (
@@ -310,9 +287,9 @@ export default function BannerAdPaymentPage() {
 
             <div className="space-y-4">
                 <div>
-                    <h2 className="text-2xl font-bold">Banner Preview</h2>
+                    <h2 className="text-2xl font-bold">Баннер урьдчилж харах</h2>
                     <p className="mt-1 text-gray-500">
-                        This is how your ad can appear on the homepage.
+                        Ингэснээр таны зар нүүр хуудсан дээр гарч ирнэ.
                     </p>
                 </div>
 
@@ -370,7 +347,7 @@ export default function BannerAdPaymentPage() {
                                     type="button"
                                     className="inline-flex min-w-[165px] items-center justify-center rounded-2xl bg-slate-900 px-6 py-3.5 text-base font-bold text-white shadow-[0_14px_30px_rgba(15,23,42,0.18)]"
                                 >
-                                    {ad.targetType === "store" ? "Visit Store" : "Shop Now"}
+                                    {ad.targetType === "store" ? "Дэлгүүр үзэх" : "Shop Now"}
                                 </button>
                             </div>
                         </div>

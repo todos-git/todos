@@ -188,117 +188,7 @@ router.get("/my-ads", authMiddleware, async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 });
-// ==============================
-// ADMIN CREATE BANNER (FREE)
-// ==============================
-router.post(
-    "/admin/create",
-    authMiddleware,
-    uploadBannerMiddleware,
-    async (req, res) => {
-        try {
-            const adminUser = await User.findById(req.user._id);
 
-            if (!adminUser || !["admin", "superadmin"].includes(adminUser.role)) {
-                return res.status(403).json({ message: "Admin only" });
-            }
-
-            const { title, subtitle, targetLink } = req.body;
-
-            if (!title?.trim()) {
-                return res.status(400).json({ message: "Title is required" });
-            }
-
-            if (!req.file && !req.body.existingImage?.trim()) {
-                return res.status(400).json({ message: "Banner image is required" });
-            }
-
-            const startsAt = new Date();
-            const endsAt = new Date(startsAt);
-            endsAt.setDate(endsAt.getDate() + 30);
-
-            const banner = await BannerAd.create({
-                sellerId: adminUser._id,
-                title: title.trim(),
-                subtitle: subtitle?.trim() || "",
-                image: req.file ? req.file.path : req.body.existingImage.trim(),
-                targetType: "store",
-                targetProductId: null,
-                targetLink: targetLink?.trim() || "/",
-                durationDays: 21,
-                amount: 0,
-                status: "active",
-                storeNameSnapshot: "TODOS",
-                locationSnapshot: "",
-                packageTypeSnapshot: "premium",
-                startsAt,
-                endsAt,
-                isActive: true,
-                qpayInvoiceId: "",
-                qpayQrText: "",
-                qpayDeepLink: "",
-                paidAt: new Date(),
-            });
-
-            res.status(201).json(banner);
-        } catch (error) {
-            console.error("ADMIN CREATE BANNER ERROR:", error);
-            res.status(500).json({ message: error.message });
-        }
-    }
-);
-
-// ==============================
-// ADMIN GET BANNERS
-// ==============================
-router.get("/admin/list", authMiddleware, async (req, res) => {
-    try {
-        const adminUser = await User.findById(req.user._id);
-
-        if (!adminUser || !["admin", "superadmin"].includes(adminUser.role)) {
-            return res.status(403).json({ message: "Admin only" });
-        }
-
-        const banners = await BannerAd.find({
-            sellerId: adminUser._id,
-        }).sort({ createdAt: -1 });
-
-        res.json(banners);
-    } catch (error) {
-        console.error("ADMIN GET BANNERS ERROR:", error);
-        res.status(500).json({ message: error.message });
-    }
-});
-
-// ==============================
-// ADMIN DELETE BANNER
-// ==============================
-router.delete("/admin/:id", authMiddleware, async (req, res) => {
-    try {
-        const adminUser = await User.findById(req.user._id);
-
-        if (!adminUser || !["admin", "superadmin"].includes(adminUser.role)) {
-            return res.status(403).json({ message: "Admin only" });
-        }
-
-        const banner = await BannerAd.findById(req.params.id);
-
-        if (!banner) {
-            return res.status(404).json({ message: "Banner not found" });
-        }
-
-        if (banner.sellerId.toString() !== adminUser._id.toString()) {
-            return res.status(403).json({ message: "Not authorized" });
-        }
-
-        await banner.deleteOne();
-
-        res.json({ message: "Banner deleted" });
-    } catch (error) {
-        console.error("ADMIN DELETE BANNER ERROR:", error);
-        res.status(500).json({ message: error.message });
-    }
-});
 
 // ==============================
 // GET SINGLE BANNER AD
@@ -518,6 +408,105 @@ router.post("/:id/confirm-demo", authMiddleware, async (req, res) => {
             });
         }
 
+        if (ad.status === "pending_approval") {
+            return res.json({
+                message: "Banner payment already waiting for approval",
+                ad,
+            });
+        }
+
+        ad.status = "pending_approval";
+        ad.paidAt = new Date();
+
+        await ad.save();
+
+        res.json({
+            message: "Banner payment waiting for admin approval",
+            ad,
+        });
+    } catch (error) {
+        console.error("CONFIRM BANNER PAYMENT ERROR:", error);
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// ==============================
+// ADMIN GET PENDING BANNER ADS
+// ==============================
+router.get("/admin/pending", authMiddleware, async (req, res) => {
+    try {
+        const adminUser = await User.findById(req.user._id);
+
+        if (!adminUser || !["admin", "superadmin"].includes(adminUser.role)) {
+            return res.status(403).json({ message: "Admin only" });
+        }
+
+        const ads = await BannerAd.find({
+            status: "pending_approval",
+            isAdminBanner: false,
+        })
+            .populate("sellerId", "email phone storeName")
+            .sort({ createdAt: -1 });
+
+        res.json(ads);
+    } catch (error) {
+        console.error("ADMIN GET PENDING BANNERS ERROR:", error);
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// ==============================
+// ADMIN GET APPROVED BANNER ADS
+// ==============================
+router.get("/admin/approved", authMiddleware, async (req, res) => {
+    try {
+        const adminUser = await User.findById(req.user._id);
+
+        if (!adminUser || !["admin", "superadmin"].includes(adminUser.role)) {
+            return res.status(403).json({ message: "Admin only" });
+        }
+
+        const ads = await BannerAd.find({
+            status: "active",
+            isAdminBanner: false,
+        })
+            .populate("sellerId", "email phone storeName")
+            .sort({ approvedAt: -1, updatedAt: -1 });
+
+        res.json(ads);
+    } catch (error) {
+        console.error("ADMIN GET APPROVED BANNERS ERROR:", error);
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// ==============================
+// ADMIN APPROVE BANNER AD
+// ==============================
+router.post("/admin/:id/approve", authMiddleware, async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({ message: "Invalid banner ad id" });
+        }
+
+        const adminUser = await User.findById(req.user._id);
+
+        if (!adminUser || !["admin", "superadmin"].includes(adminUser.role)) {
+            return res.status(403).json({ message: "Admin only" });
+        }
+
+        const ad = await BannerAd.findById(id);
+
+        if (!ad) {
+            return res.status(404).json({ message: "Banner ad not found" });
+        }
+
+        if (ad.isAdminBanner) {
+            return res.status(400).json({ message: "Admin banner cannot use this flow" });
+        }
+
         const startsAt = new Date();
         const endsAt = new Date(startsAt);
         endsAt.setDate(endsAt.getDate() + ad.durationDays);
@@ -526,16 +515,58 @@ router.post("/:id/confirm-demo", authMiddleware, async (req, res) => {
         ad.isActive = true;
         ad.startsAt = startsAt;
         ad.endsAt = endsAt;
-        ad.paidAt = new Date();
+        ad.approvedAt = new Date();
+        ad.paidAt = ad.paidAt || new Date();
 
         await ad.save();
 
         res.json({
-            message: "Banner payment confirmed",
+            message: "Banner approved and activated",
             ad,
         });
     } catch (error) {
-        console.error("CONFIRM BANNER PAYMENT ERROR:", error);
+        console.error("ADMIN APPROVE BANNER ERROR:", error);
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// ==============================
+// ADMIN CANCEL BANNER AD
+// ==============================
+router.post("/admin/:id/cancel", authMiddleware, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { reason } = req.body;
+
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({ message: "Invalid banner ad id" });
+        }
+
+        const adminUser = await User.findById(req.user._id);
+
+        if (!adminUser || !["admin", "superadmin"].includes(adminUser.role)) {
+            return res.status(403).json({ message: "Admin only" });
+        }
+
+        const ad = await BannerAd.findById(id);
+
+        if (!ad) {
+            return res.status(404).json({ message: "Banner ad not found" });
+        }
+
+        ad.status = "cancelled";
+        ad.cancelReason = String(reason || "").trim() || "No reason provided";
+        ad.cancelledAt = new Date();
+        ad.isActive = false;
+
+        await ad.save();
+
+        res.json({
+            message: "Banner cancelled",
+            ad,
+        });
+    } catch (error) {
+        console.error("ADMIN CANCEL BANNER ERROR:", error);
         res.status(500).json({ message: error.message });
     }
 });

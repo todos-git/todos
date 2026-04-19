@@ -47,7 +47,7 @@ type Stats = {
     sellerCount: number;
 };
 
-type TabType = "approve" | "approved" | "cancelled" | "banner" | "stats";
+type TabType = "approve" | "approved" | "cancelled" | "banner" | "bannerRequests" | "stats";
 
 function packageLabel(type: string) {
     switch (type) {

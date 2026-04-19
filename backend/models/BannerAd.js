@@ -55,7 +55,14 @@ const bannerAdSchema = new mongoose.Schema(
 
         status: {
             type: String,
-            enum: ["pending_payment", "paid", "active", "expired", "rejected"],
+            enum: [
+                "pending_payment",
+                "pending_approval",
+                "active",
+                "expired",
+                "rejected",
+                "cancelled",
+            ],
             default: "pending_payment",
         },
 
@@ -114,6 +121,20 @@ const bannerAdSchema = new mongoose.Schema(
         paidAt: {
             type: Date,
             default: null,
+        },
+        approvedAt: {
+            type: Date,
+            default: null,
+        },
+
+        cancelledAt: {
+            type: Date,
+            default: null,
+        },
+
+        cancelReason: {
+            type: String,
+            default: "",
         },
     },
     {
