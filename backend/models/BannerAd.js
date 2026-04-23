@@ -44,7 +44,7 @@ const bannerAdSchema = new mongoose.Schema(
 
         durationDays: {
             type: Number,
-            enum: [7, 14, 21],
+            enum: [7, 14, 21, 30],
             required: true,
         },
 

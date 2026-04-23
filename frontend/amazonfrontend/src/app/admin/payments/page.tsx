@@ -28,6 +28,36 @@ type PaymentItem = {
     };
 };
 
+type BannerRequestItem = {
+    _id: string;
+    title: string;
+    subtitle?: string;
+    image?: string;
+    amount: number;
+    durationDays: number;
+    status:
+    | "pending_payment"
+    | "pending_approval"
+    | "screenshot_requested"
+    | "screenshot_uploaded"
+    | "active"
+    | "expired"
+    | "rejected"
+    | "cancelled";
+    createdAt?: string;
+    paidAt?: string;
+    approvedAt?: string;
+    cancelledAt?: string;
+    cancelReason?: string;
+    screenshotImage?: string;
+    sellerId?: {
+        _id?: string;
+        email?: string;
+        phone?: string;
+        storeName?: string;
+    };
+};
+
 type AdminBanner = {
     _id: string;
     title: string;
@@ -47,7 +77,7 @@ type Stats = {
     sellerCount: number;
 };
 
-type TabType = "approve" | "approved" | "cancelled" | "banner" | "bannerRequests" | "stats";
+type TabType = "approve" | "approved" | "cancelled" | "banner" | "stats";
 
 function packageLabel(type: string) {
     switch (type) {
@@ -70,24 +100,36 @@ function getImageSrc(src?: string) {
 
 export default function AdminPaymentsPage() {
     const [tab, setTab] = useState<TabType>("approve");
+
     const [pendingPayments, setPendingPayments] = useState<PaymentItem[]>([]);
     const [approvedPayments, setApprovedPayments] = useState<PaymentItem[]>([]);
     const [cancelledPayments, setCancelledPayments] = useState<PaymentItem[]>([]);
+
+    const [pendingBannerRequests, setPendingBannerRequests] = useState<BannerRequestItem[]>([]);
+
     const [stats, setStats] = useState<Stats>({
         pendingCount: 0,
         approvedCount: 0,
         cancelledCount: 0,
         sellerCount: 0,
     });
+
     const [loading, setLoading] = useState(true);
+
     const [approvingId, setApprovingId] = useState<string | null>(null);
     const [requestingId, setRequestingId] = useState<string | null>(null);
     const [cancellingId, setCancellingId] = useState<string | null>(null);
+
+    const [bannerApprovingId, setBannerApprovingId] = useState<string | null>(null);
+    const [bannerRequestingId, setBannerRequestingId] = useState<string | null>(null);
+    const [bannerCancellingId, setBannerCancellingId] = useState<string | null>(null);
+
     const [seenTabs, setSeenTabs] = useState<Record<string, boolean>>({
         approve: false,
         approved: false,
         cancelled: false,
     });
+
     const [bannerTitle, setBannerTitle] = useState("");
     const [bannerSubtitle, setBannerSubtitle] = useState("");
     const [bannerTargetLink, setBannerTargetLink] = useState("/seller/banner-ads/create");
@@ -100,7 +142,14 @@ export default function AdminPaymentsPage() {
         try {
             const token = localStorage.getItem("token");
 
-            const [pendingRes, approvedRes, cancelledRes, statsRes, bannerListRes] = await Promise.all([
+            const [
+                pendingRes,
+                approvedRes,
+                cancelledRes,
+                statsRes,
+                bannerListRes,
+                pendingBannerRes,
+            ] = await Promise.all([
                 fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/payments/admin/pending`, {
                     headers: { Authorization: `Bearer ${token}` },
                     cache: "no-store",
@@ -121,6 +170,10 @@ export default function AdminPaymentsPage() {
                     headers: { Authorization: `Bearer ${token}` },
                     cache: "no-store",
                 }),
+                fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/banner-ads/admin/pending`, {
+                    headers: { Authorization: `Bearer ${token}` },
+                    cache: "no-store",
+                }),
             ]);
 
             const pendingData = await pendingRes.json();
@@ -128,23 +181,29 @@ export default function AdminPaymentsPage() {
             const cancelledData = await cancelledRes.json();
             const statsData = await statsRes.json();
             const bannerListData = await bannerListRes.json();
+            const pendingBannerData = await pendingBannerRes.json();
 
             if (!pendingRes.ok) throw new Error(pendingData.message || "Pending авч чадсангүй");
             if (!approvedRes.ok) throw new Error(approvedData.message || "Approved авч чадсангүй");
             if (!cancelledRes.ok) throw new Error(cancelledData.message || "Cancelled авч чадсангүй");
             if (!statsRes.ok) throw new Error(statsData.message || "Stats авч чадсангүй");
             if (!bannerListRes.ok) throw new Error(bannerListData.message || "Banner list авч чадсангүй");
+            if (!pendingBannerRes.ok) throw new Error(pendingBannerData.message || "Pending banners авч чадсангүй");
 
             setPendingPayments(Array.isArray(pendingData) ? pendingData : []);
             setApprovedPayments(Array.isArray(approvedData) ? approvedData : []);
             setCancelledPayments(Array.isArray(cancelledData) ? cancelledData : []);
-            setStats(statsData || {
-                pendingCount: 0,
-                approvedCount: 0,
-                cancelledCount: 0,
-                sellerCount: 0,
-            });
             setAdminBanners(Array.isArray(bannerListData) ? bannerListData : []);
+            setPendingBannerRequests(Array.isArray(pendingBannerData) ? pendingBannerData : []);
+
+            setStats(
+                statsData || {
+                    pendingCount: 0,
+                    approvedCount: 0,
+                    cancelledCount: 0,
+                    sellerCount: 0,
+                }
+            );
         } catch (error) {
             console.error("ADMIN FETCH ERROR:", error);
             alert(error instanceof Error ? error.message : "Алдаа гарлаа");
@@ -209,6 +268,7 @@ export default function AdminPaymentsPage() {
                 approve: false,
                 approved: false,
             }));
+
             alert("Төлбөр баталгаажлаа");
         } catch (error) {
             console.error("ADMIN APPROVE ERROR:", error);
@@ -243,11 +303,13 @@ export default function AdminPaymentsPage() {
             }
 
             await fetchAll();
+
             setSeenTabs((prev) => ({
                 ...prev,
                 approve: false,
                 approved: false,
             }));
+
             alert("Screenshot хүсэлт илгээгдлээ");
         } catch (error) {
             console.error("REQUEST SCREENSHOT ERROR:", error);
@@ -285,14 +347,117 @@ export default function AdminPaymentsPage() {
             }
 
             await fetchAll();
-
-
             alert("Төлбөр цуцлагдлаа");
         } catch (error) {
             console.error("ADMIN CANCEL ERROR:", error);
             alert(error instanceof Error ? error.message : "Cancel хийхэд алдаа гарлаа");
         } finally {
             setCancellingId(null);
+        }
+    };
+
+    const handleBannerApprove = async (bannerId: string) => {
+        if (!window.confirm("Энэ баннерыг баталгаажуулах уу?")) return;
+
+        try {
+            setBannerApprovingId(bannerId);
+
+            const token = localStorage.getItem("token");
+
+            const res = await fetch(
+                `${process.env.NEXT_PUBLIC_API_URL}/api/banner-ads/admin/${bannerId}/approve`,
+                {
+                    method: "POST",
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                }
+            );
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                throw new Error(data.message || "Banner approve хийж чадсангүй");
+            }
+
+            await fetchAll();
+            alert("Баннер баталгаажлаа");
+        } catch (error) {
+            console.error("ADMIN BANNER APPROVE ERROR:", error);
+            alert(error instanceof Error ? error.message : "Banner approve хийхэд алдаа гарлаа");
+        } finally {
+            setBannerApprovingId(null);
+        }
+    };
+
+    const handleBannerScreenshot = async (bannerId: string) => {
+        if (!window.confirm("Banner screenshot нэхэх үү?")) return;
+
+        try {
+            setBannerRequestingId(bannerId);
+
+            const token = localStorage.getItem("token");
+
+            const res = await fetch(
+                `${process.env.NEXT_PUBLIC_API_URL}/api/banner-ads/admin/${bannerId}/request-screenshot`,
+                {
+                    method: "POST",
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                }
+            );
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                throw new Error(data.message || "Banner screenshot request хийж чадсангүй");
+            }
+
+            await fetchAll();
+            alert("Banner screenshot хүсэлт илгээгдлээ");
+        } catch (error) {
+            console.error("ADMIN BANNER SCREENSHOT ERROR:", error);
+            alert(error instanceof Error ? error.message : "Banner screenshot хүсэлтэд алдаа гарлаа");
+        } finally {
+            setBannerRequestingId(null);
+        }
+    };
+
+    const handleBannerCancel = async (bannerId: string) => {
+        const reason = window.prompt("Яагаад цуцалж байгаагаа бичнэ үү:");
+        if (reason === null) return;
+
+        try {
+            setBannerCancellingId(bannerId);
+
+            const token = localStorage.getItem("token");
+
+            const res = await fetch(
+                `${process.env.NEXT_PUBLIC_API_URL}/api/banner-ads/admin/${bannerId}/cancel`,
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${token}`,
+                    },
+                    body: JSON.stringify({ reason }),
+                }
+            );
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                throw new Error(data.message || "Banner cancel хийж чадсангүй");
+            }
+
+            await fetchAll();
+            alert("Баннер цуцлагдлаа");
+        } catch (error) {
+            console.error("ADMIN BANNER CANCEL ERROR:", error);
+            alert(error instanceof Error ? error.message : "Banner cancel хийхэд алдаа гарлаа");
+        } finally {
+            setBannerCancellingId(null);
         }
     };
 
@@ -339,7 +504,7 @@ export default function AdminPaymentsPage() {
 
             setBannerTitle("");
             setBannerSubtitle("");
-            setBannerTargetLink("/");
+            setBannerTargetLink("/seller/banner-ads/create");
             setBannerImage(null);
             setBannerPreview("");
 
@@ -385,7 +550,7 @@ export default function AdminPaymentsPage() {
         {
             key: "approve",
             label: "Approve",
-            count: seenTabs.approve ? 0 : stats.pendingCount,
+            count: seenTabs.approve ? 0 : stats.pendingCount + pendingBannerRequests.length,
         },
         {
             key: "approved",
@@ -451,105 +616,229 @@ export default function AdminPaymentsPage() {
                     <div className="mb-6">
                         <h1 className="text-3xl font-bold text-slate-900">Admin Dashboard</h1>
                         <p className="mt-2 text-slate-500">
-                            Package approvals, cancelled requests, approved sellers, banner tools, statistics.
+                            Package approvals, banner approvals, cancelled requests, banner tools, statistics.
                         </p>
                     </div>
 
                     {tab === "approve" && (
-                        <div className="space-y-4">
-                            {pendingPayments.length === 0 ? (
-                                <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                                    Хүлээгдэж буй approve хүсэлт алга байна.
+                        <div className="space-y-8">
+                            <div className="space-y-4">
+                                <div className="flex items-center gap-3">
+                                    <div className="h-6 w-1.5 rounded-full bg-orange-500" />
+                                    <h2 className="text-2xl font-bold text-slate-900">Package Approve Requests</h2>
                                 </div>
-                            ) : (
-                                pendingPayments.map((payment) => (
-                                    <div
-                                        key={payment._id}
-                                        className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
-                                    >
-                                        <div className="grid gap-4 lg:grid-cols-5">
-                                            <div>
-                                                <p className="text-xs text-slate-500">Дэлгүүр</p>
-                                                <p className="font-semibold text-slate-900">
-                                                    {payment.userId?.storeName || "-"}
-                                                </p>
-                                            </div>
 
-                                            <div>
-                                                <p className="text-xs text-slate-500">Gmail</p>
-                                                <p className="break-all font-medium text-slate-800">
-                                                    {payment.userId?.email || "-"}
-                                                </p>
-                                            </div>
-
-                                            <div>
-                                                <p className="text-xs text-slate-500">Утас</p>
-                                                <p className="font-medium text-slate-800">
-                                                    {payment.userId?.phone || "-"}
-                                                </p>
-                                            </div>
-
-                                            <div>
-                                                <p className="text-xs text-slate-500">Багц / Дүн</p>
-                                                <p className="font-semibold text-slate-900">
-                                                    {packageLabel(payment.packageType)} / ₮{payment.amount.toLocaleString()}
-                                                </p>
-                                            </div>
-
-                                            <div>
-                                                <p className="text-xs text-slate-500">Төлөв</p>
-                                                <p className="font-semibold text-orange-700">{payment.status}</p>
-                                            </div>
-                                        </div>
-
-                                        <div className="mt-4 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                                            <div className="space-y-1 text-sm text-slate-500">
-                                                <p>Үүссэн: {payment.createdAt ? new Date(payment.createdAt).toLocaleString() : "-"}</p>
-                                                <p>Би төлсөн: {payment.paidAt ? new Date(payment.paidAt).toLocaleString() : "-"}</p>
-                                            </div>
-
-                                            {payment.screenshotImage && (
-                                                <a
-                                                    href={getImageSrc(payment.screenshotImage)}
-                                                    target="_blank"
-                                                    className="text-sm font-medium text-blue-600 underline"
-                                                >
-                                                    Screenshot харах
-                                                </a>
-                                            )}
-
-                                            <div className="flex flex-wrap gap-3">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleApprove(payment._id)}
-                                                    disabled={approvingId === payment._id}
-                                                    className="rounded-xl bg-slate-900 px-4 py-3 font-semibold text-white disabled:opacity-50"
-                                                >
-                                                    {approvingId === payment._id ? "Approving..." : "Approve"}
-                                                </button>
-
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleRequestScreenshot(payment._id)}
-                                                    disabled={requestingId === payment._id}
-                                                    className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 font-semibold text-blue-700 disabled:opacity-50"
-                                                >
-                                                    {requestingId === payment._id ? "Requesting..." : "Screenshot"}
-                                                </button>
-
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleCancel(payment._id)}
-                                                    disabled={cancellingId === payment._id}
-                                                    className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 font-semibold text-red-700 disabled:opacity-50"
-                                                >
-                                                    {cancellingId === payment._id ? "Cancelling..." : "Cancel"}
-                                                </button>
-                                            </div>
-                                        </div>
+                                {pendingPayments.length === 0 ? (
+                                    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                                        Хүлээгдэж буй package approve хүсэлт алга байна.
                                     </div>
-                                ))
-                            )}
+                                ) : (
+                                    pendingPayments.map((payment) => (
+                                        <div
+                                            key={payment._id}
+                                            className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+                                        >
+                                            <div className="grid gap-4 lg:grid-cols-5">
+                                                <div>
+                                                    <p className="text-xs text-slate-500">Дэлгүүр</p>
+                                                    <p className="font-semibold text-slate-900">
+                                                        {payment.userId?.storeName || "-"}
+                                                    </p>
+                                                </div>
+
+                                                <div>
+                                                    <p className="text-xs text-slate-500">Gmail</p>
+                                                    <p className="break-all font-medium text-slate-800">
+                                                        {payment.userId?.email || "-"}
+                                                    </p>
+                                                </div>
+
+                                                <div>
+                                                    <p className="text-xs text-slate-500">Утас</p>
+                                                    <p className="font-medium text-slate-800">
+                                                        {payment.userId?.phone || "-"}
+                                                    </p>
+                                                </div>
+
+                                                <div>
+                                                    <p className="text-xs text-slate-500">Багц / Дүн</p>
+                                                    <p className="font-semibold text-slate-900">
+                                                        {packageLabel(payment.packageType)} / ₮{payment.amount.toLocaleString()}
+                                                    </p>
+                                                </div>
+
+                                                <div>
+                                                    <p className="text-xs text-slate-500">Төлөв</p>
+                                                    <p className="font-semibold text-orange-700">{payment.status}</p>
+                                                </div>
+                                            </div>
+
+                                            <div className="mt-4 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                                                <div className="space-y-1 text-sm text-slate-500">
+                                                    <p>Үүссэн: {payment.createdAt ? new Date(payment.createdAt).toLocaleString() : "-"}</p>
+                                                    <p>Би төлсөн: {payment.paidAt ? new Date(payment.paidAt).toLocaleString() : "-"}</p>
+                                                </div>
+
+                                                {payment.screenshotImage && (
+                                                    <a
+                                                        href={getImageSrc(payment.screenshotImage)}
+                                                        target="_blank"
+                                                        rel="noreferrer"
+                                                        className="text-sm font-medium text-blue-600 underline"
+                                                    >
+                                                        Screenshot харах
+                                                    </a>
+                                                )}
+
+                                                <div className="flex flex-wrap gap-3">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleApprove(payment._id)}
+                                                        disabled={approvingId === payment._id}
+                                                        className="rounded-xl bg-slate-900 px-4 py-3 font-semibold text-white disabled:opacity-50"
+                                                    >
+                                                        {approvingId === payment._id ? "Approving..." : "Approve"}
+                                                    </button>
+
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleRequestScreenshot(payment._id)}
+                                                        disabled={requestingId === payment._id}
+                                                        className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 font-semibold text-blue-700 disabled:opacity-50"
+                                                    >
+                                                        {requestingId === payment._id ? "Requesting..." : "Screenshot"}
+                                                    </button>
+
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleCancel(payment._id)}
+                                                        disabled={cancellingId === payment._id}
+                                                        className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 font-semibold text-red-700 disabled:opacity-50"
+                                                    >
+                                                        {cancellingId === payment._id ? "Cancelling..." : "Cancel"}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+
+                            <div className="space-y-4">
+                                <div className="flex items-center gap-3">
+                                    <div className="h-6 w-1.5 rounded-full bg-violet-500" />
+                                    <h2 className="text-2xl font-bold text-slate-900">Banner Approve Requests</h2>
+                                </div>
+
+                                {pendingBannerRequests.length === 0 ? (
+                                    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                                        Хүлээгдэж буй banner approve хүсэлт алга байна.
+                                    </div>
+                                ) : (
+                                    pendingBannerRequests.map((banner) => (
+                                        <div
+                                            key={banner._id}
+                                            className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+                                        >
+                                            <div className="grid gap-4 lg:grid-cols-5">
+                                                <div>
+                                                    <p className="text-xs text-slate-500">Баннер</p>
+                                                    <p className="font-semibold text-slate-900">
+                                                        {banner.title || "-"}
+                                                    </p>
+                                                </div>
+
+                                                <div>
+                                                    <p className="text-xs text-slate-500">Gmail</p>
+                                                    <p className="break-all font-medium text-slate-800">
+                                                        {banner.sellerId?.email || "-"}
+                                                    </p>
+                                                </div>
+
+                                                <div>
+                                                    <p className="text-xs text-slate-500">Утас</p>
+                                                    <p className="font-medium text-slate-800">
+                                                        {banner.sellerId?.phone || "-"}
+                                                    </p>
+                                                </div>
+
+                                                <div>
+                                                    <p className="text-xs text-slate-500">Хугацаа / Дүн</p>
+                                                    <p className="font-semibold text-slate-900">
+                                                        {banner.durationDays} хоног / ₮{banner.amount.toLocaleString()}
+                                                    </p>
+                                                </div>
+
+                                                <div>
+                                                    <p className="text-xs text-slate-500">Төлөв</p>
+                                                    <p className="font-semibold text-violet-700">{banner.status}</p>
+                                                </div>
+                                            </div>
+
+                                            <div className="mt-4 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                                                <div className="space-y-1 text-sm text-slate-500">
+                                                    <p>Үүссэн: {banner.createdAt ? new Date(banner.createdAt).toLocaleString() : "-"}</p>
+                                                    <p>Би төлсөн: {banner.paidAt ? new Date(banner.paidAt).toLocaleString() : "-"}</p>
+                                                    <p>Дэлгүүр: {banner.sellerId?.storeName || "-"}</p>
+                                                </div>
+
+                                                <div className="flex flex-wrap items-center gap-3">
+                                                    {banner.image && (
+                                                        <a
+                                                            href={getImageSrc(banner.image)}
+                                                            target="_blank"
+                                                            rel="noreferrer"
+                                                            className="text-sm font-medium text-slate-700 underline"
+                                                        >
+                                                            Banner харах
+                                                        </a>
+                                                    )}
+
+                                                    {banner.screenshotImage && (
+                                                        <a
+                                                            href={getImageSrc(banner.screenshotImage)}
+                                                            target="_blank"
+                                                            rel="noreferrer"
+                                                            className="text-sm font-medium text-blue-600 underline"
+                                                        >
+                                                            Screenshot харах
+                                                        </a>
+                                                    )}
+                                                </div>
+
+                                                <div className="flex flex-wrap gap-3">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleBannerApprove(banner._id)}
+                                                        disabled={bannerApprovingId === banner._id}
+                                                        className="rounded-xl bg-slate-900 px-4 py-3 font-semibold text-white disabled:opacity-50"
+                                                    >
+                                                        {bannerApprovingId === banner._id ? "Approving..." : "Approve"}
+                                                    </button>
+
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleBannerScreenshot(banner._id)}
+                                                        disabled={bannerRequestingId === banner._id}
+                                                        className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 font-semibold text-blue-700 disabled:opacity-50"
+                                                    >
+                                                        {bannerRequestingId === banner._id ? "Requesting..." : "Screenshot"}
+                                                    </button>
+
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleBannerCancel(banner._id)}
+                                                        disabled={bannerCancellingId === banner._id}
+                                                        className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 font-semibold text-red-700 disabled:opacity-50"
+                                                    >
+                                                        {bannerCancellingId === banner._id ? "Cancelling..." : "Cancel"}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
                         </div>
                     )}
 
@@ -766,7 +1055,7 @@ export default function AdminPaymentsPage() {
                                         {adminBanners.length === 0 ? (
                                             <p className="text-slate-500">Одоогоор admin banner алга байна.</p>
                                         ) : (
-                                            adminBanners.map((banner: AdminBanner) => (
+                                            adminBanners.map((banner) => (
                                                 <div
                                                     key={banner._id}
                                                     className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 p-4"

@@ -40,7 +40,30 @@ type TopSellerItem = {
   topProduct?: Product;
 };
 
+const categoryCards = [
+  { label: "Эрэгтэй", filter: "Эрэгтэй хувцас", image: "/categories/men.jpg" },
+  { label: "Эмэгтэй", filter: "Эмэгтэй хувцас", image: "/categories/women.jpg" },
+  { label: "Хүүхдийн", filter: "Хүүхдийн бараа", image: "/categories/kids.jpg" },
+  { label: "Спорт", filter: "Спорт хувцас", image: "/categories/sports.jpg" },
+  { label: "Пүүз", filter: "Пүүз", image: "/categories/shoes.jpg" },
+  { label: "Гутал", filter: "Гутал", image: "/categories/classic.jpg" },
+  { label: "Цүнх", filter: "Цүнх", image: "/categories/bags.jpg" },
+  { label: "Малгай", filter: "Малгай", image: "/categories/hats.jpg" },
+  { label: "Гоо сайхан", filter: "Гоо сайхан", image: "/categories/beauty.jpg" },
+  { label: "Арьс арчилгаа", filter: "Арьс арчилгаа", image: "/categories/skincare.jpg" },
+  { label: "Үс арчилгаа", filter: "Үс арчилгаа", image: "/categories/haircare.jpg" },
+  { label: "Эрүүл мэнд", filter: "Эрүүл мэнд", image: "/categories/health.jpg" },
+];
 
+function formatPrice(price?: number) {
+  return `₮ ${Number(price || 0).toLocaleString()}`;
+}
+
+function getProductImage(src?: string) {
+  if (!src) return "/no-image.png";
+  if (src.startsWith("http://") || src.startsWith("https://")) return src;
+  return `${process.env.NEXT_PUBLIC_API_URL}${src.startsWith("/") ? src : `/${src}`}`;
+}
 
 function HomePageContent() {
   const searchParams = useSearchParams();
@@ -54,7 +77,6 @@ function HomePageContent() {
 
   const featuredScrollRef = useRef<HTMLDivElement | null>(null);
   const topSellerScrollRef = useRef<HTMLDivElement | null>(null);
-  const categoryScrollRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -72,7 +94,8 @@ function HomePageContent() {
         }
 
         const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/products?${params.toString()}`
+          `${process.env.NEXT_PUBLIC_API_URL}/api/products?${params.toString()}`,
+          { cache: "no-store" }
         );
 
         const data = await res.json();
@@ -87,8 +110,6 @@ function HomePageContent() {
 
     fetchProducts();
   }, [search, filter]);
-
-
 
   const featuredProducts = useMemo(() => {
     const premium = products.filter(
@@ -108,7 +129,7 @@ function HomePageContent() {
         !product.sellerId?.packageType || product.sellerId?.packageType === "free"
     );
 
-    return [...premium, ...pro, ...basic, ...free].slice(0, 12);
+    return [...premium, ...pro, ...basic, ...free].slice(0, 18);
   }, [products]);
 
   const topSellers = useMemo(() => {
@@ -167,7 +188,6 @@ function HomePageContent() {
 
     return Array.from(sellerMap.values())
       .sort((a, b) => {
-
         if (packageScore(b.packageType) !== packageScore(a.packageType)) {
           return packageScore(b.packageType) - packageScore(a.packageType);
         }
@@ -176,16 +196,13 @@ function HomePageContent() {
           return b.sellerRating - a.sellerRating;
         }
 
-
         if (b.sellerReviewCount !== a.sellerReviewCount) {
           return b.sellerReviewCount - a.sellerReviewCount;
         }
 
-
         if (Number(b.isVerified) !== Number(a.isVerified)) {
           return Number(b.isVerified) - Number(a.isVerified);
         }
-
 
         return b.productCount - a.productCount;
       })
@@ -199,7 +216,7 @@ function HomePageContent() {
     if (!ref.current) return;
 
     ref.current.scrollBy({
-      left: direction === "left" ? -360 : 360,
+      left: direction === "left" ? -760 : 760,
       behavior: "smooth",
     });
   };
@@ -258,8 +275,6 @@ function HomePageContent() {
     }
   }
 
-
-
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50 px-6 text-center text-lg text-slate-600">
@@ -269,38 +284,83 @@ function HomePageContent() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f7f2fb]">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top,#fdf2f8_0%,#f8fafc_38%,#f8f1ff_100%)]">
       {!isFiltering && (
-        <section className="mx-auto max-w-[1700px] px-2 pt-2 md:px-4 md:pt-4">
+        <section className="mx-auto max-w-[1860px] px-3 pt-4 md:px-6 md:pt-6">
           <HomeHeroBanner />
         </section>
       )}
 
+      {!isFiltering && (
+        <section className="mx-auto max-w-[1860px] px-3 pt-8 md:px-6 md:pt-10">
+          <div className="rounded-[36px] border border-white/70 bg-white/80 p-5 shadow-[0_25px_80px_rgba(15,23,42,0.06)] backdrop-blur md:p-6">
+            <div className="mb-6 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="h-8 w-1.5 rounded-full bg-red-500" />
+                <div>
+                  <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900 md:text-[34px]">
+                    Ангиллаар дэлгүүр хэсэх
+                  </h2>
+                  <p className="mt-1 text-sm text-slate-500">
+                    Сонирхсон төрлөөрөө хялбар сонгоорой
+                  </p>
+                </div>
+              </div>
+            </div>
 
+            <div className="grid grid-cols-3 gap-4 md:grid-cols-4 xl:grid-cols-6">
+              {categoryCards.map((category) => (
+                <Link key={category.filter} href={`/?filter=${encodeURIComponent(category.filter)}`}>
+                  <div className="group overflow-hidden rounded-[26px] border border-slate-200 bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl">
+                    <div className="relative h-32 w-full overflow-hidden md:h-40">
+                      <Image
+                        src={category.image}
+                        alt={category.label}
+                        fill
+                        sizes="(max-width: 1280px) 33vw, 240px"
+                        className="object-cover transition duration-500 group-hover:scale-105"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-900/30 via-transparent to-transparent" />
+                    </div>
+                    <div className="p-4">
+                      <p className="text-center text-sm font-bold text-slate-900 md:text-base">
+                        {category.label}
+                      </p>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {!isFiltering && (
-        <section className="mx-auto max-w-[1600px] px-4 pt-8 md:px-6 md:pt-10">
-          <div className="rounded-[32px] bg-white p-5 shadow-sm ring-1 ring-slate-200/70 md:p-6">
-            <div className="mb-5 flex items-center justify-between gap-4">
-              <div>
-                <h2 className="text-2xl font-extrabold text-slate-900 md:text-3xl">
-                  Онцлох бүтээгдэхүүнүүд
-                </h2>
-                <p className="mt-1 text-sm text-slate-500">
-                  Премиум худалдагчдын бүтээгдэхүүн эхэнд харагдана
-                </p>
+        <section className="mx-auto max-w-[1860px] px-3 pt-8 md:px-6 md:pt-10">
+          <div className="rounded-[36px] border border-white/70 bg-white/85 p-5 shadow-[0_25px_80px_rgba(15,23,42,0.06)] backdrop-blur md:p-6">
+            <div className="mb-6 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="h-8 w-1.5 rounded-full bg-red-500" />
+                <div>
+                  <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900 md:text-[34px]">
+                    Онцлох бүтээгдэхүүн
+                  </h2>
+                  <p className="mt-1 text-sm text-slate-500">
+                    Премиум худалдагчдын бараа эхэнд харагдана
+                  </p>
+                </div>
               </div>
 
               <div className="hidden items-center gap-2 md:flex">
                 <button
                   onClick={() => scrollRow(featuredScrollRef, "left")}
-                  className="flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-xl text-slate-700 transition hover:bg-slate-50"
+                  className="flex h-11 w-11 items-center justify-center rounded-full bg-red-500 text-xl text-white shadow-sm transition hover:bg-red-600"
                 >
                   ‹
                 </button>
                 <button
                   onClick={() => scrollRow(featuredScrollRef, "right")}
-                  className="flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-xl text-slate-700 transition hover:bg-slate-50"
+                  className="flex h-11 w-11 items-center justify-center rounded-full bg-red-500 text-xl text-white shadow-sm transition hover:bg-red-600"
                 >
                   ›
                 </button>
@@ -314,15 +374,39 @@ function HomePageContent() {
             ) : (
               <div
                 ref={featuredScrollRef}
-                className="flex gap-5 overflow-x-auto scroll-smooth pb-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+                className="grid grid-flow-col grid-rows-2 auto-cols-[190px] gap-4 overflow-x-auto pb-2 scroll-smooth [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden md:auto-cols-[220px]"
               >
                 {featuredProducts.map((product) => (
-                  <div
+                  <Link
                     key={product._id}
-                    className="min-w-[280px] max-w-[280px] flex-shrink-0 md:min-w-[320px] md:max-w-[320px]"
+                    href={`/products/${product._id}`}
+                    className="group overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-lg"
                   >
-                    <ProductCard product={product} showSeller featured />
-                  </div>
+                    <div className="relative h-[170px] w-full overflow-hidden bg-slate-50 md:h-[190px]">
+                      <Image
+                        src={getProductImage(product.images?.[0])}
+                        alt={product.name}
+                        fill
+                        unoptimized
+                        sizes="220px"
+                        className="object-cover transition duration-500 group-hover:scale-105"
+                      />
+                    </div>
+
+                    <div className="space-y-2 p-3">
+                      <p className="line-clamp-2 min-h-[40px] text-sm font-semibold leading-5 text-slate-900">
+                        {product.name}
+                      </p>
+
+                      <p className="line-clamp-1 text-xs text-slate-500">
+                        {product.sellerId?.storeName || "Дэлгүүр"}
+                      </p>
+
+                      <p className="text-base font-black text-slate-900">
+                        {formatPrice(product.price)}
+                      </p>
+                    </div>
+                  </Link>
                 ))}
               </div>
             )}
@@ -331,387 +415,15 @@ function HomePageContent() {
       )}
 
       {!isFiltering && (
-        <section className="mx-auto max-w-[1600px] px-4 pt-8 md:px-6 md:pt-10">
-          <div className="rounded-[32px] bg-white p-5 shadow-sm ring-1 ring-slate-200/70 md:p-6">
-            <div className="mb-5 flex items-center justify-between gap-4">
-              <div className="min-w-0">
-                <h2 className="text-2xl font-extrabold text-slate-900 md:text-3xl">
-                  Ангиллаар дэлгүүр хэсэх
-                </h2>
-
-                <p className="mt-1 text-sm text-slate-500">
-                  Ангиллаар бараагаа хялбар олоорой
-                </p>
-              </div>
-
-              <div className="hidden shrink-0 items-center gap-2 md:flex">
-                <button
-                  onClick={() => scrollRow(categoryScrollRef, "left")}
-                  className="flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-xl text-slate-700 transition hover:bg-slate-50"
-                >
-                  ‹
-                </button>
-
-                <button
-                  onClick={() => scrollRow(categoryScrollRef, "right")}
-                  className="flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-xl text-slate-700 transition hover:bg-slate-50"
-                >
-                  ›
-                </button>
-              </div>
-            </div>
-
-            <div
-              ref={categoryScrollRef}
-              className="flex gap-4 overflow-x-auto scroll-smooth pb-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
-            >
-              <Link href="/?filter=Эрэгтэй хувцас">
-                <div className="min-w-[180px] flex-shrink-0 overflow-hidden rounded-2xl bg-slate-100 transition hover:shadow-md cursor-pointer">
-                  <div className="relative h-32 w-full">
-                    <Image
-                      src="/categories/men.jpg"
-                      alt="Эрэгтэй"
-                      fill
-                      sizes="(max-width: 768px) 40vw, 180px"
-                      className="object-cover"
-                    />
-                  </div>
-                  <div className="p-3 text-center font-semibold">Эрэгтэй</div>
-                </div>
-              </Link>
-
-              <Link href="/?filter=Эмэгтэй хувцас">
-                <div className="min-w-[180px] flex-shrink-0 overflow-hidden rounded-2xl bg-slate-100 transition hover:shadow-md cursor-pointer">
-                  <div className="relative h-32 w-full">
-                    <Image
-                      src="/categories/women.jpg"
-                      alt="Эмэгтэй"
-                      fill
-                      sizes="(max-width: 768px) 40vw, 180px"
-                      className="object-cover"
-                    />
-                  </div>
-                  <div className="p-3 text-center font-semibold">Эмэгтэй</div>
-                </div>
-              </Link>
-
-              <Link href="/?filter=Хүүхдийн бараа">
-                <div className="min-w-[180px] flex-shrink-0 overflow-hidden rounded-2xl bg-slate-100 transition hover:shadow-md cursor-pointer">
-                  <div className="relative h-32 w-full">
-                    <Image
-                      src="/categories/kids.jpg"
-                      alt="Хүүхдийн бараа"
-                      fill
-                      sizes="(max-width: 768px) 40vw, 180px"
-                      className="object-cover"
-                    />
-                  </div>
-                  <div className="p-3 text-center font-semibold">Хүүхдийн</div>
-                </div>
-              </Link>
-
-              <Link href="/?filter=Спорт хувцас">
-                <div className="min-w-[180px] flex-shrink-0 overflow-hidden rounded-2xl bg-slate-100 transition hover:shadow-md cursor-pointer">
-                  <div className="relative h-32 w-full">
-                    <Image
-                      src="/categories/sports.jpg"
-                      alt="Спорт хувцас"
-                      fill
-                      sizes="(max-width: 768px) 40vw, 180px"
-                      className="object-cover"
-                    />
-                  </div>
-                  <div className="p-3 text-center font-semibold">Спорт хувцас</div>
-                </div>
-              </Link>
-
-              <Link href="/?filter=Пүүз">
-                <div className="min-w-[180px] flex-shrink-0 overflow-hidden rounded-2xl bg-slate-100 transition hover:shadow-md cursor-pointer">
-                  <div className="relative h-32 w-full">
-                    <Image
-                      src="/categories/shoes.jpg"
-                      alt="Пүүз"
-                      fill
-                      sizes="(max-width: 768px) 40vw, 180px"
-                      className="object-cover"
-                    />
-                  </div>
-                  <div className="p-3 text-center font-semibold">Пүүз</div>
-                </div>
-              </Link>
-
-              <Link href="/?filter=Гутал">
-                <div className="min-w-[180px] flex-shrink-0 overflow-hidden rounded-2xl bg-slate-100 transition hover:shadow-md cursor-pointer">
-                  <div className="relative h-32 w-full">
-                    <Image
-                      src="/categories/classic.jpg"
-                      alt="Гутал"
-                      fill
-                      sizes="(max-width: 768px) 40vw, 180px"
-                      className="object-cover"
-                    />
-                  </div>
-                  <div className="p-3 text-center font-semibold">Гутал</div>
-                </div>
-              </Link>
-
-              <Link href="/?filter=Цүнх">
-                <div className="min-w-[180px] flex-shrink-0 overflow-hidden rounded-2xl bg-slate-100 transition hover:shadow-md cursor-pointer">
-                  <div className="relative h-32 w-full">
-                    <Image
-                      src="/categories/bags.jpg"
-                      alt="Цүнх"
-                      fill
-                      sizes="(max-width: 768px) 40vw, 180px"
-                      className="object-cover"
-                    />
-                  </div>
-                  <div className="p-3 text-center font-semibold">Цүнх</div>
-                </div>
-              </Link>
-
-              <Link href="/?filter=Малгай">
-                <div className="min-w-[180px] flex-shrink-0 overflow-hidden rounded-2xl bg-slate-100 transition hover:shadow-md cursor-pointer">
-                  <div className="relative h-32 w-full">
-                    <Image
-                      src="/categories/hats.jpg"
-                      alt="Малгай"
-                      fill
-                      sizes="(max-width: 768px) 40vw, 180px"
-                      className="object-cover"
-                    />
-                  </div>
-                  <div className="p-3 text-center font-semibold">Малгай</div>
-                </div>
-              </Link>
-
-              <Link href="/?filter=Дотуур хувцас">
-                <div className="min-w-[180px] flex-shrink-0 overflow-hidden rounded-2xl bg-slate-100 transition hover:shadow-md cursor-pointer">
-                  <div className="relative h-32 w-full">
-                    <Image
-                      src="/categories/underwear.jpg"
-                      alt="Дотуур хувцас"
-                      fill
-                      sizes="(max-width: 768px) 40vw, 180px"
-                      className="object-cover"
-                    />
-                  </div>
-                  <div className="p-3 text-center font-semibold">Дотуур хувцас</div>
-                </div>
-              </Link>
-
-              <Link href="/?filter=Гоо сайхан">
-                <div className="min-w-[180px] flex-shrink-0 overflow-hidden rounded-2xl bg-slate-100 transition hover:shadow-md cursor-pointer">
-                  <div className="relative h-32 w-full">
-                    <Image
-                      src="/categories/beauty.jpg"
-                      alt="Гоо сайхан"
-                      fill
-                      sizes="(max-width: 768px) 40vw, 180px"
-                      className="object-cover"
-                    />
-                  </div>
-                  <div className="p-3 text-center font-semibold">Гоо сайхан</div>
-                </div>
-              </Link>
-
-              <Link href="/?filter=Арьс арчилгаа">
-                <div className="min-w-[180px] flex-shrink-0 overflow-hidden rounded-2xl bg-slate-100 transition hover:shadow-md cursor-pointer">
-                  <div className="relative h-32 w-full">
-                    <Image
-                      src="/categories/skincare.jpg"
-                      alt="Арьс арчилгаа"
-                      fill
-                      sizes="(max-width: 768px) 40vw, 180px"
-                      className="object-cover"
-                    />
-                  </div>
-                  <div className="p-3 text-center font-semibold">Арьс арчилгаа</div>
-                </div>
-              </Link>
-
-              <Link href="/?filter=Үс арчилгаа">
-                <div className="min-w-[180px] flex-shrink-0 overflow-hidden rounded-2xl bg-slate-100 transition hover:shadow-md cursor-pointer">
-                  <div className="relative h-32 w-full">
-                    <Image
-                      src="/categories/haircare.jpg"
-                      alt="Үс арчилгаа"
-                      fill
-                      sizes="(max-width: 768px) 40vw, 180px"
-                      className="object-cover"
-                    />
-                  </div>
-                  <div className="p-3 text-center font-semibold">Үс арчилгаа</div>
-                </div>
-              </Link>
-
-              <Link href="/?filter=Эрүүл мэнд">
-                <div className="min-w-[180px] flex-shrink-0 overflow-hidden rounded-2xl bg-slate-100 transition hover:shadow-md cursor-pointer">
-                  <div className="relative h-32 w-full">
-                    <Image
-                      src="/categories/health.jpg"
-                      alt="Эрүүл мэнд"
-                      fill
-                      sizes="(max-width: 768px) 40vw, 180px"
-                      className="object-cover"
-                    />
-                  </div>
-                  <div className="p-3 text-center font-semibold">Эрүүл мэнд</div>
-                </div>
-              </Link>
-
-              <Link href="/?filter=Гэр ахуй">
-                <div className="min-w-[180px] flex-shrink-0 overflow-hidden rounded-2xl bg-slate-100 transition hover:shadow-md cursor-pointer">
-                  <div className="relative h-32 w-full">
-                    <Image
-                      src="/categories/home.jpg"
-                      alt="Гэр ахуй"
-                      fill
-                      sizes="(max-width: 768px) 40vw, 180px"
-                      className="object-cover"
-                    />
-                  </div>
-                  <div className="p-3 text-center font-semibold">Гэр ахуй</div>
-                </div>
-              </Link>
-
-              <Link href="/?filter=Гал тогоо">
-                <div className="min-w-[180px] flex-shrink-0 overflow-hidden rounded-2xl bg-slate-100 transition hover:shadow-md cursor-pointer">
-                  <div className="relative h-32 w-full">
-                    <Image
-                      src="/categories/kitchen.jpg"
-                      alt="Гал тогоо"
-                      fill
-                      sizes="(max-width: 768px) 40vw, 180px"
-                      className="object-cover"
-                    />
-                  </div>
-                  <div className="p-3 text-center font-semibold">Гал тогоо</div>
-                </div>
-              </Link>
-
-              <Link href="/?filter=Цахилгаан бараа">
-                <div className="min-w-[180px] flex-shrink-0 overflow-hidden rounded-2xl bg-slate-100 transition hover:shadow-md cursor-pointer">
-                  <div className="relative h-32 w-full">
-                    <Image
-                      src="/categories/electronics.jpg"
-                      alt="Цахилгаан бараа"
-                      fill
-                      sizes="(max-width: 768px) 40vw, 180px"
-                      className="object-cover"
-                    />
-                  </div>
-                  <div className="p-3 text-center font-semibold">Цахилгаан бараа</div>
-                </div>
-              </Link>
-
-              <Link href="/?filter=Гар утас, дагалдах хэрэгсэл">
-                <div className="min-w-[180px] flex-shrink-0 overflow-hidden rounded-2xl bg-slate-100 transition hover:shadow-md cursor-pointer">
-                  <div className="relative h-32 w-full">
-                    <Image
-                      src="/categories/mobile.jpg"
-                      alt="Гар утас, дагалдах хэрэгсэл"
-                      fill
-                      sizes="(max-width: 768px) 40vw, 180px"
-                      className="object-cover"
-                    />
-                  </div>
-                  <div className="p-3 text-center font-semibold">Гар утас, дагалдах хэрэгсэл</div>
-                </div>
-              </Link>
-
-              <Link href="/?filter=Авто бараа">
-                <div className="min-w-[180px] flex-shrink-0 overflow-hidden rounded-2xl bg-slate-100 transition hover:shadow-md cursor-pointer">
-                  <div className="relative h-32 w-full">
-                    <Image
-                      src="/categories/cars.jpg"
-                      alt="Авто бараа"
-                      fill
-                      sizes="(max-width: 768px) 40vw, 180px"
-                      className="object-cover"
-                    />
-                  </div>
-                  <div className="p-3 text-center font-semibold">Авто бараа</div>
-                </div>
-              </Link>
-
-              <Link href="/?filter=Аялал">
-                <div className="min-w-[180px] flex-shrink-0 overflow-hidden rounded-2xl bg-slate-100 transition hover:shadow-md cursor-pointer">
-                  <div className="relative h-32 w-full">
-                    <Image
-                      src="/categories/travel.jpg"
-                      alt="Аялал"
-                      fill
-                      sizes="(max-width: 768px) 40vw, 180px"
-                      className="object-cover"
-                    />
-                  </div>
-                  <div className="p-3 text-center font-semibold">Аялал</div>
-                </div>
-              </Link>
-
-              <Link href="/?filter=Оффис, бичиг хэрэг">
-                <div className="min-w-[180px] flex-shrink-0 overflow-hidden rounded-2xl bg-slate-100 transition hover:shadow-md cursor-pointer">
-                  <div className="relative h-32 w-full">
-                    <Image
-                      src="/categories/office.jpg"
-                      alt="Оффис, бичиг хэрэг"
-                      fill
-                      sizes="(max-width: 768px) 40vw, 180px"
-                      className="object-cover"
-                    />
-                  </div>
-                  <div className="p-3 text-center font-semibold">Оффис, бичиг хэрэг</div>
-                </div>
-              </Link>
-
-              <Link href="/?filter=Амьтны хэрэгсэл">
-                <div className="min-w-[180px] flex-shrink-0 overflow-hidden rounded-2xl bg-slate-100 transition hover:shadow-md cursor-pointer">
-                  <div className="relative h-32 w-full">
-                    <Image
-                      src="/categories/pet.jpg"
-                      alt="Амьтны хэрэгсэл"
-                      fill
-                      sizes="(max-width: 768px) 40vw, 180px"
-                      className="object-cover"
-                    />
-                  </div>
-                  <div className="p-3 text-center font-semibold">Амьтны хэрэгсэл</div>
-                </div>
-              </Link>
-
-              <Link href="/?filter=Бусад">
-                <div className="min-w-[180px] flex-shrink-0 overflow-hidden rounded-2xl bg-slate-100 transition hover:shadow-md cursor-pointer">
-                  <div className="relative h-32 w-full">
-                    <Image
-                      src="/categories/others.jpg"
-                      alt="Бусад"
-                      fill
-                      sizes="(max-width: 768px) 40vw, 180px"
-                      className="object-cover"
-                    />
-                  </div>
-                  <div className="p-3 text-center font-semibold">Бусад</div>
-                </div>
-              </Link>
-            </div>
-          </div>
-        </section>
-      )}
-
-
-
-
-      {!isFiltering && (
-        <section className="mx-auto max-w-[1600px] px-4 pt-8 md:px-6 md:pt-10">
-          <div className="rounded-[32px] bg-white p-5 shadow-sm ring-1 ring-slate-200/70 md:p-6">
+        <section className="mx-auto max-w-[1860px] px-3 pt-8 md:px-6 md:pt-10">
+          <div className="rounded-[36px] border border-white/70 bg-white p-5 shadow-[0_25px_80px_rgba(15,23,42,0.06)] md:p-6">
             <div className="mb-5 flex items-center justify-between gap-4">
               <div>
                 <h2 className="text-2xl font-extrabold text-slate-900 md:text-3xl">
                   Шилдэг худалдагчид
                 </h2>
                 <p className="mt-1 text-sm text-slate-500">
-                  Үнэлгээ, баталгаажуулалт, багц болон бүтээгдэхүүний идэвхээр эрэмбэлэв
+                  Үнэлгээ, баталгаажуулалт, багцаар эрэмбэлэв
                 </p>
               </div>
 
@@ -821,7 +533,7 @@ function HomePageContent() {
         </section>
       )}
 
-      <section className="mx-auto max-w-[1600px] px-4 py-8 md:px-6 md:py-10">
+      <section className="mx-auto max-w-[1860px] px-3 py-8 md:px-6 md:py-10">
         <div className="mb-5 flex items-center justify-between gap-4">
           <div>
             <h2 className="text-2xl font-extrabold text-slate-900 md:text-3xl">
@@ -853,7 +565,7 @@ function HomePageContent() {
       </section>
 
       <footer className="mt-6 border-t border-slate-200 bg-white">
-        <div className="mx-auto max-w-[1600px] px-4 py-10 md:px-6">
+        <div className="mx-auto max-w-[1860px] px-3 py-10 md:px-6">
           <div className="flex flex-col gap-8 rounded-[32px] bg-slate-50 p-6 ring-1 ring-slate-200 md:flex-row md:items-center md:justify-between md:p-8">
             <div>
               <div className="text-3xl font-black tracking-tight text-slate-900">
